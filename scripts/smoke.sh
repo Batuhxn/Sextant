@@ -32,10 +32,12 @@ sleep 3; xcrun simctl io "$UDID" screenshot "$OUT/1-library-unpaired.png" >/dev/
 curl -fsS "$S/api/app/state" | check "d['paired'] is False" || fail "should start unpaired"
 code=$(curl -s -o /dev/null -w '%{http_code}' "$S/api/find?q=x"); [ "$code" = 503 ] || fail "unpaired proxy should be 503, got $code"
 
-# Pair the way the QR code does.
-xcrun simctl openurl "$UDID" "sextant://pair?u=http%3A%2F%2F127.0.0.1%3A8765&t=testkey"
-for i in $(seq 1 20); do curl -fsS "$S/api/app/state" | check "d['paired'] and d['online']" && break; sleep 1; done
-curl -fsS "$S/api/app/state" | check "d['paired'] and d['online']" || fail "pairing via sextant:// link failed"
+# Pair. (The QR code's sextant:// link goes through the same AppRouter.pair; iOS asks "Open in Sextant?"
+# for it, which nobody can answer in CI. The link parsing itself is covered by the unit tests.)
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"url":"127.0.0.1","token":"wrong"}' "$S/api/app/pair")
+[ "$code" = 400 ] || fail "a wrong key must be refused, got $code"
+curl -fsS -X POST -H 'Content-Type: application/json' -d '{"url":"127.0.0.1:8765","token":"testkey"}' "$S/api/app/pair" | check "d['ok']" || fail "pairing"
+curl -fsS "$S/api/app/state" | check "d['paired'] and d['online'] and d['server']=='http://127.0.0.1:8765'" || fail "pairing state"
 echo "paired: OK"
 curl -fsS "$S/api/songs" | check "d[0]['id']=='test-song' and d[0]['offline'] is False" || fail "remote song list"
 curl -fsS "$S/api/find?q=x" | check "d['mode']=='catalog'" || fail "proxy to the computer"
