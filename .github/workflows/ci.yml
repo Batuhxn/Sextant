@@ -47,11 +47,30 @@ jobs:
           grep -E "warning:" build.log | grep -v "appintents" | sort -u | head -40 || true
           echo "Simulator build: PASS"
 
+      - name: Pick a simulator
+        run: echo "UDID=$(python3 scripts/pick-simulator.py)" >> "$GITHUB_ENV"
+
       - name: Run unit tests (listening analysis, HTTP, song list)
         run: |
           set -euo pipefail
-          udid="$(python3 scripts/pick-simulator.py)"
+          udid="$UDID"
           xcodebuild test -project Sextant.xcodeproj -scheme Sextant \
             -destination "id=$udid" -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO > test.log 2>&1 \
             || { grep -E "error:|failed|XCTAssert" test.log | sort -u | head -60; tail -n 40 test.log; exit 1; }
           grep -E "Test Case .*(passed|failed)|Executed" test.log | tail -n 30
+
+      - name: Smoke test on the simulator (pair, download, offline playback data)
+        run: |
+          set -euo pipefail
+          app="$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name Sextant.app -path '*iphonesimulator*' | head -n 1)"
+          [ -n "$app" ] || { echo "::error::Sextant.app not found"; exit 1; }
+          bash scripts/smoke.sh "$app" "$UDID" smoke
+
+      - name: Upload smoke screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke
+          path: smoke/
+          if-no-files-found: ignore
+          retention-days: 7
