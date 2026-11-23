@@ -60,6 +60,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.batuhxn.sextant
         PRODUCT_NAME: Sextant
+        # XcodeGen's iOS preset sets 1,2 at target level; iPhone only.
+        TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_PREVIEWS: "NO"
       configs:
