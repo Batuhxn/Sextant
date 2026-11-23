@@ -1,0 +1,57 @@
+name: CI (simulator build + unit tests)
+
+# Unsigned: no Apple credentials are used here.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Select the newest Xcode 16
+        run: |
+          set -euo pipefail
+          xcode="$(ls -d /Applications/Xcode_16*.app | sort -V | tail -n 1)"
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+
+      - name: Generate the project
+        run: |
+          set -euo pipefail
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+          xcodegen generate --spec project.yml
+
+      - name: Build the app for the simulator
+        run: |
+          set -euo pipefail
+          xcodebuild build -project Sextant.xcodeproj -scheme Sextant \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO > build.log 2>&1 \
+            || { grep -E "error:|fatal" build.log | sort -u | head -60; tail -n 30 build.log; exit 1; }
+          grep -E "warning:" build.log | grep -v "appintents" | sort -u | head -40 || true
+          echo "Simulator build: PASS"
+
+      - name: Run unit tests (listening analysis, HTTP, song list)
+        run: |
+          set -euo pipefail
+          udid="$(python3 scripts/pick-simulator.py)"
+          xcodebuild test -project Sextant.xcodeproj -scheme Sextant \
+            -destination "id=$udid" -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO > test.log 2>&1 \
+            || { grep -E "error:|failed|XCTAssert" test.log | sort -u | head -60; tail -n 40 test.log; exit 1; }
+          grep -E "Test Case .*(passed|failed)|Executed" test.log | tail -n 30

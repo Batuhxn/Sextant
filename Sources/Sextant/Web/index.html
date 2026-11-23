@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kılavuz</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Plan: sahne paneli. Ustte sabit "simdi/siradaki" oynatici, altinda akor sekilleri, tab ve tur tur zaman cizelgesi. Her akorun kendi rengi var. */
+:root {
+  --bg: #eef0f3; --surface: #ffffff; --ink: #161a22; --muted: #5b6472; --line: #d6dae1;
+  --accent: #d9771a; --accent-ink: #ffffff; --good: #1d8a4e; --bad: #c0392b;
+  --k0: #2f6fd6; --k1: #12907f; --k2: #c2410c; --k3: #9b3fb8; --k4: #b4326e; --k5: #5f7d17; --k6: #a87400; --k7: #51607a; --kx: #7a8494;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1218; --surface: #181c25; --ink: #e9ecf2; --muted: #98a1b0; --line: #2b313d;
+    --accent: #f0913a; --accent-ink: #1a1206; --good: #4fd08a; --bad: #ff7b6b;
+    --k0: #6ea2ff; --k1: #3fc7b2; --k2: #ff8a52; --k3: #cf86ea; --k4: #f27fb2; --k5: #a9cc4e; --k6: #e6b23a; --k7: #9fb0cc; --kx: #6c7686;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; line-height: 1.05; }
+h2 { font-size: 1.35rem; font-weight: 700; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 24px 20px 64px; display: grid; gap: 22px; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.fine { font-size: .88rem; color: var(--muted); max-width: 80ch; margin: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; }
+.rowx { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent, inherit); text-decoration: underline; cursor: pointer; font: inherit; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px; font-size: .9rem; }
+.btn { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 8px 14px; font-weight: 700; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); min-width: 120px; }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.small { padding: 5px 10px; font-size: .85rem; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { border: 0; background: var(--bg); padding: 8px 11px; font-weight: 700; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.toggle { display: inline-flex; gap: 8px; align-items: center; font-weight: 700; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+.ctl-label { font-size: .85rem; color: var(--muted); }
+select { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; max-width: 240px; }
+
+/* Kutuphane */
+.brand { display: grid; gap: 4px; }
+.drop { border: 2px dashed var(--muted); border-radius: 14px; padding: 28px 20px; display: grid; gap: 4px; justify-items: center; text-align: center; background: var(--surface); cursor: pointer; }
+.drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.drop b { font-family: var(--font-display); font-size: 1.3rem; }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+.songs { display: grid; gap: 10px; }
+.card { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.card a { color: inherit; text-decoration: none; display: grid; gap: 2px; }
+.card a b { font-family: var(--font-display); font-size: 1.2rem; }
+.card a:hover b { color: var(--accent); }
+.card .meta { font-size: .9rem; color: var(--muted); }
+.card .err { color: var(--bad); }
+.pbar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+.pbar div { height: 100%; background: var(--accent); transition: width .4s; }
+
+/* Oynatici */
+.player { position: sticky; top: 8px; z-index: 5; box-shadow: 0 8px 24px rgba(10,15,25,.10); }
+.stage { display: grid; grid-template-columns: 1.3fr 1fr 1.2fr; gap: 16px; align-items: center; }
+.now, .next { display: grid; gap: 2px; }
+.lab { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.now .name { font-family: var(--font-display); font-weight: 800; font-size: clamp(3rem, 8vw, 4.6rem); line-height: 1; }
+.next .name { font-family: var(--font-display); font-weight: 700; font-size: 2rem; line-height: 1.1; }
+.sub { font-size: .9rem; color: var(--muted); min-height: 1.3em; }
+.beatbox { display: grid; gap: 8px; justify-items: start; }
+.dots { display: flex; gap: 8px; }
+.dot { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: .8rem; color: var(--muted); font-family: var(--font-mono); }
+.dot.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.strumline { display: flex; gap: 4px; font-size: 1.25rem; font-weight: 700; }
+.strumline span { width: 24px; text-align: center; color: var(--muted); opacity: .55; }
+.strumline span.acc { opacity: 1; }
+.strumline span.cur { color: var(--accent); opacity: 1; }
+.progress { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; cursor: pointer; }
+.progress div { height: 100%; width: 0; background: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.listen { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.meter { width: 90px; height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.meter div { height: 100%; width: 0; background: var(--good); }
+.heard { font-weight: 700; min-width: 13ch; }
+.heard.ok { color: var(--good); }
+.heard.no { color: var(--bad); }
+.waiting { background: var(--accent); color: var(--accent-ink); border-radius: 8px; padding: 4px 10px; font-weight: 700; }
+
+/* Akor hucreleri */
+.loop { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+.cell { border-radius: 10px; padding: 10px 6px; text-align: center; color: var(--surface); font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; display: grid; gap: 2px; background: var(--kx); }
+.cell small { font-family: var(--font-body); font-weight: 400; font-size: .75rem; opacity: .9; }
+.capomap { display: flex; flex-wrap: wrap; gap: 8px; }
+.capomap span { border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; background: var(--bg); font-weight: 700; }
+.capomap span i { font-style: normal; font-weight: 400; color: var(--muted); }
+.stepper { display: inline-flex; align-items: center; gap: 6px; }
+.stepper button { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); font-weight: 700; }
+.stepper b { min-width: 2ch; text-align: center; font-family: var(--font-mono); }
+.shapes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.shape { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 6px; justify-items: center; background: var(--bg); }
+.shape .title { display: flex; gap: 8px; align-items: baseline; }
+.shape .title b { font-family: var(--font-display); font-size: 1.35rem; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.shape .code { font-family: var(--font-mono); font-size: .85rem; color: var(--muted); }
+.shape svg { width: 100%; max-width: 150px; height: auto; }
+
+/* Tab */
+.tabgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 10px; }
+.tbar { display: grid; gap: 4px; padding: 8px 8px 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.tbar.cur { border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
+.th { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.th small { font-family: var(--font-body); font-weight: 400; color: var(--muted); font-size: .75rem; white-space: nowrap; }
+.tbody { display: grid; grid-template-columns: 16px 1fr; }
+.tl { display: grid; grid-template-rows: repeat(6, 22px); align-items: center; font-family: var(--font-mono); font-size: .75rem; color: var(--muted); }
+.tg { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(6, 22px); background: repeating-linear-gradient(to bottom, transparent 0 10.5px, var(--muted) 10.5px 11.5px, transparent 11.5px 22px); border-left: 2px solid var(--muted); border-right: 2px solid var(--muted); }
+.tc { display: grid; place-items: center; position: relative; z-index: 1; }
+.tc b { font-family: var(--font-mono); font-size: .95rem; line-height: 1.15; background: var(--bg); padding: 0 3px; border-radius: 3px; }
+.hl { position: absolute; top: -3px; bottom: -3px; left: 0; width: 12.5%; background: var(--accent); opacity: .3; border-radius: 4px; display: none; }
+.tbar.cur .hl { display: block; }
+.tcount { display: grid; grid-template-columns: repeat(8, 1fr); margin-left: 16px; text-align: center; font-family: var(--font-mono); font-size: .7rem; color: var(--muted); }
+
+/* Zaman cizelgesi */
+.timeline { display: grid; gap: 8px; }
+.row { display: grid; grid-template-columns: 190px 1fr auto; gap: 10px; align-items: center; }
+.row .meta { display: grid; }
+.row .meta b { font-size: .95rem; }
+.row .meta span { font-size: .8rem; color: var(--muted); }
+.row.inloop .meta b { color: var(--accent); }
+.bars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.bar { border: 0; border-radius: 6px; padding: 6px 2px; color: var(--surface); font-weight: 700; font-size: .85rem; opacity: .8; background: var(--kx); position: relative; overflow: hidden; white-space: nowrap; }
+.bar:hover { opacity: 1; }
+.bar.cur { opacity: 1; outline: 3px solid var(--ink); outline-offset: 1px; }
+.bar.low { opacity: .55; outline: 2px dashed var(--muted); outline-offset: -2px; }
+.bar.low.cur { opacity: 1; }
+.bar.sel { outline: 3px solid var(--accent); outline-offset: 1px; opacity: 1; }
+.bar.hit::after, .bar.miss::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; }
+.bar.hit::after { background: var(--good); }
+.bar.miss::after { background: var(--bad); }
+.loopbtn { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 5px 10px; font-size: .85rem; font-weight: 700; white-space: nowrap; }
+.loopbtn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.editbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border: 1px dashed var(--muted); border-radius: 10px; padding: 10px 12px; }
+.back { color: var(--muted); text-decoration: none; font-weight: 700; }
+.back:hover { color: var(--accent); }
+.titlebtn { background: none; border: 0; padding: 0; text-align: left; font: inherit; color: inherit; cursor: text; }
+
+/* Arama */
+.find { display: flex; gap: 10px; }
+.find input { flex: 1; min-width: 0; background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 12px 16px; font-size: 1.1rem; }
+.find input:focus { border-color: var(--accent); outline: none; }
+.find .btn { padding: 0 22px; font-size: 1.05rem; }
+.results { display: grid; gap: 8px; }
+.rcard { display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.rcard img, .rcard .noimg { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: var(--line); }
+.rcard.yt img { width: 56px; height: 42px; }
+.rcard b { font-family: var(--font-display); font-size: 1.1rem; display: block; }
+.rcard .meta { font-size: .9rem; color: var(--muted); }
+.rtools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: var(--line); flex: none; }
+.card .cmain { display: flex; gap: 12px; align-items: center; }
+.warnchip { border-color: var(--bad); }
+
+/* Sozler ve akorlar */
+.sheet { max-height: 56vh; overflow-y: auto; padding: 6px 4px 40vh 2px; display: grid; gap: 6px; scroll-behavior: smooth; overscroll-behavior: contain; }
+.lline { display: flex; flex-wrap: wrap; align-items: flex-end; row-gap: 4px; padding: 4px 8px; border-radius: 8px; border-left: 3px solid transparent; }
+.lline.cur { background: color-mix(in srgb, var(--accent) 9%, transparent); border-left-color: var(--accent); }
+.lline.past { opacity: .55; }
+.llabel { font-family: var(--font-display); font-weight: 700; color: var(--muted); font-size: .9rem; margin-top: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.ck { display: inline-flex; flex-direction: column; white-space: pre; }
+.cd { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; line-height: 1.25; min-height: 1.3rem; padding-right: .55ch; cursor: pointer; }
+.lx { font-size: 1.3rem; line-height: 1.45; }
+.wd { cursor: pointer; border-radius: 4px; transition: background .12s, color .12s; }
+.wd:hover { background: var(--line); }
+.wd.low { text-decoration: underline dotted var(--muted); text-underline-offset: 4px; }
+.wd.on { background: var(--accent); color: var(--accent-ink); }
+.lead { display: inline-flex; gap: 6px; align-items: flex-end; margin-right: 10px; }
+.lead .cd { font-size: .95rem; opacity: .8; }
+.instr { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 8px; border-radius: 8px; border-left: 3px solid transparent; }
+.instr.cur { background: color-mix(in srgb, var(--accent) 9%, transparent); border-left-color: var(--accent); }
+.instr .llabel { margin: 0 6px 0 0; }
+.ibar { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 2px 9px; font-family: var(--font-display); font-weight: 800; }
+.ibar.on { outline: 2px solid var(--ink); }
+.lyrstat { display: grid; gap: 6px; }
+.lyredit { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.lyredit textarea { width: 100%; min-height: 220px; resize: vertical; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: 1rem/1.5 var(--font-body); }
+.lyredit input[type=text] { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; min-width: 240px; }
+.followtag { font-size: .85rem; }
+
+@media (max-width: 820px) {
+  .stage { grid-template-columns: 1fr 1fr; }
+  .beatbox { grid-column: 1 / -1; }
+  .tabgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .row { grid-template-columns: 1fr; }
+  .loop { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-height: 820px) { .player { position: static; } }
+@media (max-width: 520px) {  /* telefon */
+  .wrap { padding: 12px 10px 48px; gap: 14px; }
+  .panel { padding: 12px; gap: 10px; }
+  .now .name { font-size: 3.2rem; }
+  .next .name { font-size: 1.6rem; }
+  .bars { grid-template-columns: repeat(4, 1fr); }
+  .tabgrid { grid-template-columns: minmax(0, 1fr); }
+  .shapes { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .shape { padding: 8px 4px; }
+  .lx { font-size: 1.15rem; }
+  .find .btn { padding: 0 14px; }
+  .rcard { grid-template-columns: 44px 1fr; }
+  .rcard > :last-child { grid-column: 1 / -1; }
+  .card { grid-template-columns: 1fr; }
+}
+.brandrow { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.cbtns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); max-width: min(520px, 94vw); padding: 18px; }
+dialog::backdrop { background: rgba(10, 15, 25, .45); }
+dialog h2 { margin-bottom: 10px; }
+dialog label { display: grid; gap: 4px; margin: 8px 0; }
+dialog input { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+dialog form { margin-top: 12px; }
+.rowbtns { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.rowbtns form { margin: 0; }
+.qr { display: grid; place-items: center; margin: 10px 0; }
+.qr svg { width: 220px; height: 220px; }
+.dim { opacity: .45; pointer-events: none; }
+html.app body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+html.app .player { top: env(safe-area-inset-top); }
+</style>
+</head>
+<body>
+
+<!-- ===================== Kutuphane ===================== -->
+<div class="wrap" id="libView">
+  <header class="brand">
+    <div class="brandrow"><h1 id="appName">Kılavuz</h1><button class="btn small" type="button" id="pairBtn" title="iPhone'daki Sextant uygulamasını bu bilgisayara bağla">📱 Telefona bağla</button></div>
+    <div class="muted">Şarkıyı ver, akorlarını ve tab'ını çıkarsın, çalarken seni dinlesin.</div>
+    <div class="fine" id="appConn" hidden></div>
+  </header>
+  <dialog id="pairDlg" aria-labelledby="pairTitle">
+    <h2 id="pairTitle">Sextant'ı bağla</h2>
+    <div id="pairBody" class="fine">Hazırlanıyor…</div>
+    <form method="dialog"><button class="btn" type="submit">Kapat</button></form>
+  </dialog>
+  <dialog id="srvDlg" aria-labelledby="srvTitle">
+    <h2 id="srvTitle">Bilgisayar bağlantısı</h2>
+    <p class="fine">Bilgisayarda Kılavuz'u aç, "📱 Telefona bağla"ya bas ve çıkan QR kodu iPhone kamerasıyla okut. Ya da adresi ve anahtarı buraya yaz.</p>
+    <label class="fine">Adres <input type="url" id="srvUrl" placeholder="http://192.168.1.20:8765" autocomplete="off"></label>
+    <label class="fine">Anahtar <input type="text" id="srvTok" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <div class="fine" id="srvMsg"></div>
+    <div class="rowbtns"><button class="btn primary" type="button" id="srvSave">Bağlan</button><form method="dialog"><button class="btn" type="submit">Kapat</button></form></div>
+  </dialog>
+  <form class="find" id="findForm" role="search">
+    <input type="text" id="findIn" autocomplete="off" aria-label="Şarkı ara" placeholder="Şarkı ara ya da Spotify / YouTube linki yapıştır">
+    <button class="btn primary" type="submit">Ara</button>
+  </form>
+  <div class="results" id="findRes"></div>
+  <label class="drop" id="drop" for="fileIn">
+    <input type="file" id="fileIn" multiple accept="audio/*,video/*,.weba,.webm,.mp3,.wav,.m4a,.ogg,.flac,.opus">
+    <b>Ya da dosya ekle</b>
+    <span class="muted">Ses dosyasını buraya sürükle ya da tıkla. MP3, WAV, M4A, FLAC, WEBA.</span>
+  </label>
+  <div class="fine" id="libNote"></div>
+  <div class="songs" id="songList"></div>
+  <p class="fine">Aramada şarkı bilgisi Apple Music kataloğundan, ses YouTube'dan alınır; bu yalnızca kişisel çalışma içindir. Analiz bu bilgisayarda yapılır, dosyalar dışarı çıkmaz. 3 dakikalık bir şarkı işlemciyle 2 ila 5 dakika sürer. İlk şarkıda ayrıştırma modeli bir kez indirilir.</p>
+</div>
+
+<!-- ===================== Sarki ===================== -->
+<div class="wrap" id="songView" hidden>
+  <header class="brand">
+    <a class="back" href="#">← Şarkılar</a>
+    <h1><button class="titlebtn" id="titleBtn" type="button" title="Adı değiştirmek için tıkla"></button></h1>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <section class="panel player" aria-label="Oynatıcı">
+    <div class="stage">
+      <div class="now"><span class="lab">Şimdi</span><span class="name" id="nowName">–</span><span class="sub" id="nowSub"></span></div>
+      <div class="next"><span class="lab">Sıradaki</span><span class="name" id="nextName">–</span><span class="sub" id="nextSub"></span></div>
+      <div class="beatbox">
+        <div class="dots" id="dots"><span class="dot">1</span><span class="dot">2</span><span class="dot">3</span><span class="dot">4</span></div>
+        <div class="strumline" id="strum"></div>
+        <div class="sub mono" id="pos"></div>
+      </div>
+    </div>
+    <div class="progress" id="progress" title="Tıklayıp atla"><div id="progressFill"></div></div>
+    <div class="controls">
+      <button class="btn primary" id="playBtn" type="button">▶ Başlat</button>
+      <span class="ctl-label">Ses</span>
+      <div class="seg" id="srcSeg" role="group" aria-label="Ses kaynağı">
+        <button type="button" data-v="full" aria-pressed="true">Tam şarkı</button>
+        <button type="button" data-v="backing">Gitarsız</button>
+        <button type="button" data-v="guitar">Sadece gitar</button>
+      </div>
+      <span class="ctl-label">Hız</span>
+      <div class="seg" id="speedSeg" role="group" aria-label="Hız">
+        <button type="button" data-v="0.5">%50</button>
+        <button type="button" data-v="0.6">%60</button>
+        <button type="button" data-v="0.75">%75</button>
+        <button type="button" data-v="0.9">%90</button>
+        <button type="button" data-v="1" aria-pressed="true">%100</button>
+      </div>
+      <label class="toggle" for="clickIn"><input type="checkbox" id="clickIn"> Metronom</label>
+    </div>
+    <div class="listen">
+      <button class="btn" id="listenBtn" type="button" aria-pressed="false">Beni dinle</button>
+      <select id="micSel" aria-label="Ses girişi" hidden></select>
+      <label class="toggle" for="waitIn"><input type="checkbox" id="waitIn"> Bekleme modu</label>
+      <label class="toggle" for="monIn"><input type="checkbox" id="monIn"> Gitarımı hoparlörden duy</label>
+      <div class="meter" title="Giriş seviyesi"><div id="meterFill"></div></div>
+      <span class="heard" id="heard"></span>
+      <span class="waiting" id="waitMsg" hidden></span>
+      <span class="mono muted" id="score"></span>
+    </div>
+    <div class="fine" id="status">Boşluk tuşu başlatır ve durdurur. Sol ve sağ ok ölçü ölçü gezer.</div>
+  </section>
+
+  <section class="panel" id="lyrPanel" aria-labelledby="lyrH">
+    <div class="rowx">
+      <h2 id="lyrH">Sözler ve akorlar</h2>
+      <div class="controls">
+        <span class="fine" id="lyrSrc"></span>
+        <label class="toggle followtag" for="followIn"><input type="checkbox" id="followIn" checked> Takip et</label>
+        <button class="btn small" id="lyrCopy" type="button">Akor kağıdını kopyala</button>
+        <button class="btn small" id="lyrEditBtn" type="button" aria-pressed="false">Sözleri düzenle</button>
+      </div>
+    </div>
+    <div class="lyrstat" id="lyrStat" hidden></div>
+    <div class="sheet" id="sheet" aria-live="off"></div>
+    <div class="lyredit" id="lyrEdit" hidden>
+      <p class="fine">Sözleri buraya yapıştır ya da düzelt, sonra "Bu metinle hizala"ya bas: her kelime vokaldeki yerine oturtulur. Her satır ekranda bir satır olur. [Nakarat] gibi köşeli parantezli satırlar başlık olarak gösterilir. Nakarat iki kez söyleniyorsa metinde de iki kez yaz. Zamanlı LRC metni de kabul edilir.</p>
+      <textarea id="lyrText" spellcheck="false" aria-label="Söz metni"></textarea>
+      <div class="controls">
+        <button class="btn primary" id="lyrAlign" type="button">Bu metinle hizala</button>
+        <input type="text" id="lyrQuery" aria-label="Sanatçı - Şarkı" placeholder="Sanatçı - Şarkı adı">
+        <button class="btn" id="lyrSearch" type="button">İnternette ara</button>
+        <button class="btn" id="lyrRelisten" type="button">Vokali yeniden dinle</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="loopPanel" aria-labelledby="loopH">
+    <h2 id="loopH"></h2>
+    <div class="loop" id="loopCells"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="shapeH">
+    <div class="rowx">
+      <h2 id="shapeH">Akor şekilleri</h2>
+      <div class="seg" id="levelSeg" role="group" aria-label="Seviye">
+        <button type="button" data-l="easy" aria-pressed="true">Kolay</button>
+        <button type="button" data-l="power">Power chord</button>
+        <button type="button" data-l="orig">Orijinal</button>
+      </div>
+    </div>
+    <div class="rowx" id="capoRow">
+      <div class="stepper"><span class="ctl-label">Kapo</span><button type="button" id="capoDown" aria-label="Kapoyu indir">−</button><b id="capoVal">0</b><button type="button" id="capoUp" aria-label="Kapoyu çıkar">+</button><span class="muted" id="capoHint"></span></div>
+      <div class="capomap" id="capoMap"></div>
+    </div>
+    <p class="fine" id="levelNote"></p>
+    <div class="shapes" id="shapes"></div>
+    <div class="rowx">
+      <label class="toggle" for="mirrorIn"><input type="checkbox" id="mirrorIn"> Solak görünüm (diyagramı aynala)</label>
+      <label class="toggle" for="extIn" title="Kapalıyken her akor düz majör/minör gösterilir"><input type="checkbox" id="extIn"> Renkli akorlar (7'li, sus)</label>
+      <span class="fine">Dikey çizgiler teller (soldan kalın Mi), yatay çizgiler perdeler. ✕ çalma, ○ boş tel, sayılar parmak (1 işaret, 4 serçe).</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="tabH">
+    <h2 id="tabH">Arpej tab'ı</h2>
+    <p class="fine">Akoru bas, telleri tek tek çal. Her kutu bir ölçü, her vuruşa iki nota düşer. Sayılar perde: 0 boş tel (kapo varsa kapolu tel). Üst çizgi ince Mi teli. Sıra hep aynı: bas teli, Sol, Si, Sol, ince Mi, Sol, Si, Sol. Çalarken sıradaki nota turuncu yanar. Bu, akor notalarından kurulan kolay bir düzenlemedir, kayıttaki gitarın birebir dökümü değildir.</p>
+    <div class="tabgrid" id="tab"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="tlH">
+    <div class="rowx">
+      <h2 id="tlH">Tüm şarkı</h2>
+      <button class="btn small" id="editBtn" type="button" aria-pressed="false">Akorları düzelt</button>
+    </div>
+    <p class="fine">Bir ölçüye tıkla, oraya atlar. "Döngüle" o satırı tekrar tekrar çalar. Kesik çizgili ölçülerde analiz emin değil. Dinleme açıkken ölçünün altı yeşil ya da kırmızı olur.</p>
+    <div class="editbar" id="editBar" hidden>
+      <span id="editInfo">Düzeltmek için bir ölçüye tıkla.</span>
+      <button class="btn small" id="editAlt" type="button" hidden title="Analizin ikinci tahmini">Öneri</button>
+      <select id="editSel" aria-label="Yeni akor"></select>
+      <button class="btn small" id="editApply" type="button">Uygula</button>
+      <button class="btn small" id="phaseBtn" type="button" title="Akorlar hep bir vuruş erken ya da geç değişiyorsa">Ölçü başını 1 vuruş kaydır</button>
+      <button class="btn small" id="resetBtn" type="button">Otomatik analize dön</button>
+    </div>
+    <div class="timeline" id="timeline"></div>
+  </section>
+</div>
+
+<audio id="audio" preload="auto"></audio>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const MAJ = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+const MIN = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
+const OPEN = [40, 45, 50, 55, 59, 64]; // E A D G B e
+const STRINGS = ['e', 'B', 'G', 'D', 'A', 'E'];
+
+// Acik ve kolay akor sekilleri (kapoya gore). frets/fingers: kalin Mi -> ince Mi; -1 calma.
+const EASY = {
+  '0':  { name: 'C',  frets: [-1, 3, 2, 0, 1, 0], fingers: [0, 3, 2, 0, 1, 0], cost: 1.3 },
+  '2':  { name: 'D',  frets: [-1, -1, 0, 2, 3, 2], fingers: [0, 0, 0, 1, 3, 2], cost: 1.1 },
+  '4':  { name: 'E',  frets: [0, 2, 2, 1, 0, 0], fingers: [0, 2, 3, 1, 0, 0], cost: 1.0 },
+  '7':  { name: 'G',  frets: [3, 2, 0, 0, 0, 3], fingers: [2, 1, 0, 0, 0, 3], cost: 1.3 },
+  '9':  { name: 'A',  frets: [-1, 0, 2, 2, 2, 0], fingers: [0, 0, 1, 2, 3, 0], cost: 1.1 },
+  '9m': { name: 'Am', frets: [-1, 0, 2, 2, 1, 0], fingers: [0, 0, 2, 3, 1, 0], cost: 1.0 },
+  '2m': { name: 'Dm', frets: [-1, -1, 0, 2, 3, 1], fingers: [0, 0, 0, 2, 3, 1], cost: 1.3 },
+  '4m': { name: 'Em', frets: [0, 2, 2, 0, 0, 0], fingers: [0, 2, 3, 0, 0, 0], cost: 1.0 },
+  // barre yerine kolay ikameler
+  '11m': { name: 'Bm7',   frets: [-1, 2, 0, 2, 0, 2], fingers: [0, 1, 0, 2, 0, 3], cost: 1.6, sub: true },
+  '5':   { name: 'Fmaj7', frets: [-1, -1, 3, 2, 1, 0], fingers: [0, 0, 3, 2, 1, 0], cost: 1.5, sub: true },
+  '11':  { name: 'B7',    frets: [-1, 2, 1, 2, 0, 2], fingers: [0, 2, 1, 3, 0, 4], cost: 2.0, sub: true },
+};
+
+let songs = [], S = null, D = null;
+let level = 'easy', capo = 0, mirror = false, rate = 1, clickOn = false, srcKind = 'full';
+let playing = false, loopRow = null, curBar = -1, curWin = -1, lastBeat = -1, lastSeg = -1;
+let editMode = false, editBar = null, actx = null, pollTimer = null;
+const audio = $('audio');
+
+// ---------------- Yardimcilar ----------------
+function fmt(t) { t = Math.max(0, t || 0); const m = Math.floor(t / 60), s = Math.floor(t % 60); return m + ':' + String(s).padStart(2, '0'); }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+// akor adı: kök + renk. Renkler (7, m7, maj7, sus4...) yalnızca gösterim ve şekil içindir; dinleme düz akorla çalışır.
+const SUFS = ['m7b5', 'maj7', 'sus4', 'sus2', 'dim', 'm7', 'm6', '7', '6', 'm', ''];
+const MINQ = new Set(['m', 'm7', 'm6', 'm7b5', 'dim']);
+function parse(ch) {
+  if (!ch || ch === 'N') return null;
+  const r = ch.length > 1 && ch[1] === '#' ? ch.slice(0, 2) : ch.slice(0, 1), pc = NOTES.indexOf(r), q = ch.slice(r.length);
+  if (pc < 0 || !SUFS.includes(q)) return null;
+  return { pc, min: MINQ.has(q), q };
+}
+function triad(ch) { const p = parse(ch); return p ? NOTES[p.pc] + (p.min ? 'm' : '') : ch; }
+function rootName(p) { return p.min ? MIN[p.pc].slice(0, -1) : MAJ[p.pc]; }  // minörde C#, majörde Db yazımı
+function disp(ch) { const p = parse(ch); if (!p) return '–'; return p.q === '' || p.q === 'm' ? (p.min ? MIN : MAJ)[p.pc] : rootName(p) + p.q; }
+function colorOf(ch) { return D.color[ch] || D.color[triad(ch)] || 'var(--muted)'; }
+let showExt = store('kilavuz_ext') !== '0';  // renkli akorları (7'li vb.) göster
+function nm(s) { return showExt && s.ext ? s.ext : s.ch; }
+async function api(path, opt) { const r = await fetch(path, opt); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'İstek başarısız'); return j; }
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+// ---------------- Akor sekilleri ----------------
+function barreShape(pc, min) {
+  const fe = (pc - 4 + 12) % 12, fa = (pc - 9 + 12) % 12;
+  const name = (min ? MIN : MAJ)[pc];
+  if (fe >= 1 && (fa < 1 || fe <= fa)) {
+    return min
+      ? { name, frets: [fe, fe + 2, fe + 2, fe, fe, fe], fingers: [1, 3, 4, 1, 1, 1], barre: [fe, 0, 5], cost: 3 + 0.1 * fe }
+      : { name, frets: [fe, fe + 2, fe + 2, fe + 1, fe, fe], fingers: [1, 3, 4, 2, 1, 1], barre: [fe, 0, 5], cost: 3 + 0.1 * fe };
+  }
+  return min
+    ? { name, frets: [-1, fa, fa + 2, fa + 2, fa + 1, fa], fingers: [0, 1, 3, 4, 2, 1], barre: [fa, 1, 5], cost: 3 + 0.1 * fa }
+    : { name, frets: [-1, fa, fa + 2, fa + 2, fa + 2, fa], fingers: [0, 1, 2, 3, 4, 1], barre: [fa, 1, 5], cost: 3 + 0.1 * fa };
+}
+function powerShape(pc) {
+  const fe = (pc - 4 + 12) % 12, fa = (pc - 9 + 12) % 12, name = MAJ[pc] + '5';
+  if (fe <= fa) return { name, frets: [fe, fe + 2, fe + 2, -1, -1, -1], fingers: fe ? [1, 3, 4, 0, 0, 0] : [0, 1, 2, 0, 0, 0] };
+  return { name, frets: [-1, fa, fa + 2, fa + 2, -1, -1], fingers: fa ? [0, 1, 3, 4, 0, 0] : [0, 0, 1, 2, 0, 0] };
+}
+// açık (barresiz) renkli akor şekilleri, kapoya göre göreli kök: 'kök+renk'
+const EXT_EASY = {
+  '9m7': { name: 'Am7', frets: [-1, 0, 2, 0, 1, 0], fingers: [0, 0, 2, 0, 1, 0], cost: 1.0 },
+  '4m7': { name: 'Em7', frets: [0, 2, 2, 0, 3, 0], fingers: [0, 1, 2, 0, 3, 0], cost: 1.0 },
+  '2m7': { name: 'Dm7', frets: [-1, -1, 0, 2, 1, 1], fingers: [0, 0, 0, 2, 1, 1], cost: 1.3 },
+  '11m7': { name: 'Bm7', frets: [-1, 2, 0, 2, 0, 2], fingers: [0, 1, 0, 2, 0, 3], cost: 1.6 },
+  '9_7': { name: 'A7', frets: [-1, 0, 2, 0, 2, 0], fingers: [0, 0, 2, 0, 3, 0], cost: 1.0 },
+  '4_7': { name: 'E7', frets: [0, 2, 0, 1, 0, 0], fingers: [0, 2, 0, 1, 0, 0], cost: 1.0 },
+  '2_7': { name: 'D7', frets: [-1, -1, 0, 2, 1, 2], fingers: [0, 0, 0, 2, 1, 3], cost: 1.2 },
+  '7_7': { name: 'G7', frets: [3, 2, 0, 0, 0, 1], fingers: [3, 2, 0, 0, 0, 1], cost: 1.3 },
+  '0_7': { name: 'C7', frets: [-1, 3, 2, 3, 1, 0], fingers: [0, 3, 2, 4, 1, 0], cost: 1.5 },
+  '11_7': { name: 'B7', frets: [-1, 2, 1, 2, 0, 2], fingers: [0, 2, 1, 3, 0, 4], cost: 2.0 },
+  '0maj7': { name: 'Cmaj7', frets: [-1, 3, 2, 0, 0, 0], fingers: [0, 3, 2, 0, 0, 0], cost: 1.0 },
+  '2maj7': { name: 'Dmaj7', frets: [-1, -1, 0, 2, 2, 2], fingers: [0, 0, 0, 1, 1, 1], cost: 1.2 },
+  '5maj7': { name: 'Fmaj7', frets: [-1, -1, 3, 2, 1, 0], fingers: [0, 0, 3, 2, 1, 0], cost: 1.5 },
+  '7maj7': { name: 'Gmaj7', frets: [3, 2, 0, 0, 0, 2], fingers: [2, 1, 0, 0, 0, 3], cost: 1.3 },
+  '9maj7': { name: 'Amaj7', frets: [-1, 0, 2, 1, 2, 0], fingers: [0, 0, 2, 1, 3, 0], cost: 1.2 },
+  '4maj7': { name: 'Emaj7', frets: [0, 2, 1, 1, 0, 0], fingers: [0, 3, 1, 2, 0, 0], cost: 1.3 },
+  '9sus4': { name: 'Asus4', frets: [-1, 0, 2, 2, 3, 0], fingers: [0, 0, 1, 2, 3, 0], cost: 1.1 },
+  '2sus4': { name: 'Dsus4', frets: [-1, -1, 0, 2, 3, 3], fingers: [0, 0, 0, 1, 2, 3], cost: 1.2 },
+  '4sus4': { name: 'Esus4', frets: [0, 2, 2, 2, 0, 0], fingers: [0, 2, 3, 4, 0, 0], cost: 1.1 },
+  '9sus2': { name: 'Asus2', frets: [-1, 0, 2, 2, 0, 0], fingers: [0, 0, 1, 2, 0, 0], cost: 1.0 },
+  '2sus2': { name: 'Dsus2', frets: [-1, -1, 0, 2, 3, 0], fingers: [0, 0, 0, 1, 3, 0], cost: 1.0 },
+};
+function barreExt(pc, q) {  // 7, m7, maj7 için E ve A biçimli barre
+  const fe = (pc - 4 + 12) % 12, fa = (pc - 9 + 12) % 12, name = rootName({ pc, min: q[0] === 'm' && q !== 'maj7' }) + q, useE = fe >= 1 && (fa < 1 || fe <= fa);
+  const E = { '7': [fe, fe + 2, fe, fe + 1, fe, fe], 'm7': [fe, fe + 2, fe, fe, fe, fe], 'maj7': [fe, -1, fe + 1, fe + 1, fe, -1] };
+  const A = { '7': [-1, fa, fa + 2, fa, fa + 2, fa], 'm7': [-1, fa, fa + 2, fa, fa + 1, fa], 'maj7': [-1, fa, fa + 2, fa + 1, fa + 2, fa] };
+  const fr = (useE ? E : A)[q]; if (!fr) return null;
+  const base = useE ? fe : fa;
+  return { name, frets: fr, fingers: fr.map(f => f < 0 ? 0 : f === base ? 1 : f - base + 1), barre: base ? [base, useE ? 0 : 1, 5] : null, cost: 3.2 + 0.1 * base };
+}
+function shapeAt(ch, lvl, cp) {
+  const p = parse(ch); if (!p) return null;
+  if (lvl === 'power') return powerShape(p.pc);
+  if (p.q !== '' && p.q !== 'm') {  // renkli akor: önce açık şekil, yoksa barre, o da yoksa düz akor
+    const rel = (p.pc - (lvl === 'easy' ? cp : 0) + 120) % 12, e = EXT_EASY[rel + (p.q === '7' ? '_7' : p.q)];
+    if (e) return e;
+    const b = ['7', 'm7', 'maj7'].includes(p.q) ? barreExt(rel, p.q) : null;
+    if (b && lvl !== 'easy') return b;
+    return shapeAt(triad(ch), lvl, cp);
+  }
+  const rel = (p.pc - (lvl === 'easy' ? cp : 0) + 120) % 12, key = rel + (p.min ? 'm' : '');
+  const e = EASY[key];
+  if (e && (lvl === 'easy' || !e.sub)) return e;
+  return barreShape(rel, p.min);
+}
+function shapeOf(ch) { return shapeAt(ch, level, capo); }
+function shapeName(ch) { const s = shapeOf(ch); return s ? s.name : '–'; }
+function relPc(ch, lvl, cp) { const p = parse(ch); return (p.pc - (lvl === 'easy' ? cp : 0) + 120) % 12; }
+function arpOf(ch, lvl, cp) {
+  const sh = shapeAt(ch, lvl, cp); if (!sh) return null;
+  const fr = sh.frets, root = relPc(ch, lvl, cp);
+  let bass = fr.findIndex((f, i) => f >= 0 && (OPEN[i] + f) % 12 === root);
+  if (bass < 0) bass = fr.findIndex(f => f >= 0);
+  const pick = i => { let j = i; while (j > bass && fr[j] < 0) j--; return fr[j] < 0 ? bass : j; };
+  return [bass, pick(3), pick(4), pick(3), pick(5), pick(3), pick(4), pick(3)].map(i => [5 - i, fr[i]]);
+}
+function bestCapo() {
+  let best = 0, bestCost = Infinity;
+  for (let c = 0; c <= 7; c++) {
+    let cost = 0, w = 0;
+    for (const s of D.segs) { const sh = shapeAt(s.ch, 'easy', c); if (sh) { cost += sh.cost * s.n; w += s.n; } }
+    cost = (w ? cost / w : 0) + (c ? 0.15 : 0) + 0.03 * c;
+    if (cost < bestCost - 1e-9) { bestCost = cost; best = c; }
+  }
+  return best;
+}
+
+function diagram(sh, color) {
+  const W = 150, H = 178, left = 26, top = 34, sw = 20, fh = 26, nF = 5;
+  let frets = sh.frets.slice(), fingers = sh.fingers.slice(), barre = sh.barre ? sh.barre.slice() : null;
+  if (mirror) { frets.reverse(); fingers.reverse(); if (barre) barre = [barre[0], 5 - barre[2], 5 - barre[1]]; }
+  const pos = frets.filter(f => f > 0), maxF = Math.max(0, ...pos), minF = pos.length ? Math.min(...pos) : 1;
+  const base = maxF > 5 ? minF : 1, ink = 'var(--ink)', mut = 'var(--muted)';
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${sh.name} akor diyagramı">`;
+  if (base === 1) s += `<rect x="${left - 1}" y="${top - 5}" width="${sw * 5 + 2}" height="5" fill="${ink}"/>`;
+  else s += `<text x="${left - 8}" y="${top + fh / 2 + 5}" text-anchor="end" font-size="13" fill="${mut}" font-family="var(--font-mono)">${base}</text>`;
+  for (let f = 0; f <= nF; f++) s += `<line x1="${left}" y1="${top + f * fh}" x2="${left + sw * 5}" y2="${top + f * fh}" stroke="${mut}" stroke-width="1.2"/>`;
+  for (let i = 0; i < 6; i++) { const thick = 1 + ((mirror ? i : 5 - i) * 0.35); s += `<line x1="${left + i * sw}" y1="${top}" x2="${left + i * sw}" y2="${top + nF * fh}" stroke="${ink}" stroke-width="${thick}"/>`; }
+  if (barre) { const y = top + (barre[0] - base + 0.5) * fh; s += `<rect x="${left + barre[1] * sw - 9}" y="${y - 9}" width="${(barre[2] - barre[1]) * sw + 18}" height="18" rx="9" fill="${color}"/>`; }
+  for (let i = 0; i < 6; i++) {
+    const x = left + i * sw, f = frets[i];
+    if (f === -1) s += `<text x="${x}" y="${top - 12}" text-anchor="middle" font-size="13" fill="${mut}">✕</text>`;
+    else if (f === 0) s += `<circle cx="${x}" cy="${top - 16}" r="5" fill="none" stroke="${ink}" stroke-width="1.5"/>`;
+    else {
+      const y = top + (f - base + 0.5) * fh, inB = barre && f === barre[0] && i >= barre[1] && i <= barre[2];
+      if (!inB) s += `<circle cx="${x}" cy="${y}" r="9" fill="${color}"/>`;
+      if (fingers[i] && !(inB && i !== barre[1])) s += `<text x="${x}" y="${y + 4.5}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--surface)">${fingers[i]}</text>`;
+    }
+  }
+  return s + '</svg>';
+}
+
+// ---------------- Analizden turetilenler ----------------
+function derive() {
+  const A = S.analysis, beats = A.beats, ch = A.chords, NB = beats.length, M = A.meter || 4;  // ölçüdeki vuruş (4/4 ya da 3/4)
+  const mk = (b0, n, pickup) => {
+    const l = ch.slice(b0, b0 + n); let segs;
+    if (n === 4 && M === 4 && l[0] === l[1] && l[2] === l[3] && l[1] !== l[2]) segs = [{ ch: l[0], b0, n: 2 }, { ch: l[2], b0: b0 + 2, n: 2 }];
+    else { const c = {}; l.forEach(x => c[x] = (c[x] || 0) + 1); let m = l[0]; l.forEach(x => { if (c[x] > c[m]) m = x; }); segs = [{ ch: m, b0, n }]; }
+    // renk: bölümün vuruşlarında geniş sözlüklü modelin en sık verdiği ad (elle düzeltilmiş vuruşlarda yok)
+    if (A.chords_ext) segs.forEach(sg => { const c = {}; for (let k = sg.b0; k < sg.b0 + sg.n; k++) { const e = A.chords_ext[k]; if (e && ch[k] === sg.ch && (!A.chords_auto || A.chords_auto[k] === ch[k]) && triad(e) === sg.ch) c[e] = (c[e] || 0) + 1; } const best = Object.keys(c).sort((a, b) => c[b] - c[a])[0]; sg.ext = best && best !== sg.ch ? best : null; });
+    const avg = arr => arr.slice(b0, b0 + n).reduce((a, x) => a + x, 0) / n;
+    // ikinci aday: ölçünün vuruşlarında en sık önerilen, şu ankinden farklı akor
+    let alt = null;
+    if (A.alt) { const c = {}; A.alt.slice(b0, b0 + n).forEach(x => { if (x !== segs[0].ch && x !== 'N') c[x] = (c[x] || 0) + 1; }); alt = Object.keys(c).sort((a, b) => c[b] - c[a])[0] || null; }
+    return { b0, n, pickup, segs, t: beats[b0], end: b0 + n < NB ? beats[b0 + n] : A.duration, conf: avg(A.conf), agree: A.agree ? avg(A.agree) : 1, alt, fixed: !!A.chords_auto && l.some((x, k) => x !== A.chords_auto[b0 + k]), voc: avg(A.vocal), label: segs.map(s => s.ch).join('|') };
+  };
+  const bars = []; let i = 0;
+  if (A.phase > 0) { bars.push(mk(0, A.phase, true)); i = A.phase; }
+  for (; i < NB; i += M) bars.push(mk(i, Math.min(M, NB - i), false));
+  const beat2bar = new Array(NB), segs = [];
+  bars.forEach((b, bi) => { for (let k = 0; k < b.n; k++) beat2bar[b.b0 + k] = bi; b.segs.forEach(s => { s.bar = bi; s.idx = segs.length; s.t0 = beats[s.b0]; s.t1 = s.b0 + s.n < NB ? beats[s.b0 + s.n] : A.duration; segs.push(s); }); });
+  const off = bars.length && bars[0].pickup ? 1 : 0;
+  // renkler: en cok gecen akorlara
+  const cnt = {}; segs.forEach(s => { if (s.ch !== 'N') cnt[s.ch] = (cnt[s.ch] || 0) + s.n; });
+  const uniq = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]);
+  const cntE = {}; segs.forEach(s => { const c = nm(s); if (c !== 'N') cntE[c] = (cntE[c] || 0) + s.n; });
+  const uniqExt = Object.keys(cntE).sort((a, b) => cntE[b] - cntE[a]);
+  const color = {}; uniq.forEach((c, k) => color[c] = k < 8 ? `var(--k${k})` : 'var(--kx)');
+  const confs = bars.map(b => b.conf).sort((a, b) => a - b), lowThr = 0.5 * confs[Math.floor(confs.length / 2)];
+  // emin değil: olasılık düşük ya da iki yöntem (şablon ve eğitilmiş model) bu ölçüde anlaşamıyor
+  bars.forEach(b => b.low = (b.conf < lowThr || b.agree < 0.5) && b.label !== 'N' && !b.fixed);  // elle düzeltilen ölçü artık kesin
+  D = { beats, NB, M, dur: A.duration, period: 60 / A.bpm, bars, beat2bar, segs, off, uniq, uniqExt, color, marks: {} };
+  // dongu
+  let labels = bars.slice(off).map(b => b.label);
+  while (labels.length && labels[labels.length - 1] === 'N') labels.pop();
+  let best = null;
+  for (const P of [2, 4, 8, 16]) {
+    if (labels.length < 2 * P) continue;
+    let agree = 0; const loop = [];
+    for (let r = 0; r < P; r++) { const c = {}; for (let k = r; k < labels.length; k += P) c[labels[k]] = (c[labels[k]] || 0) + 1; const top = Object.keys(c).sort((a, b) => c[b] - c[a])[0]; loop.push(top); agree += c[top]; }
+    agree /= labels.length;
+    if (!best || agree > best.agree + 0.02) best = { P, agree, loop };
+  }
+  D.loop = best && best.agree >= 0.8 ? best : null;
+  D.bestCapo = bestCapo();
+  const saved = parseInt(store('kilavuz.capo.' + S.id), 10);
+  capo = Number.isInteger(saved) && saved >= 0 && saved <= 9 ? saved : D.bestCapo;
+}
+function beatAt(t) { const b = D.beats; if (t < b[0]) return -1; let lo = 0, hi = D.NB - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (b[m] <= t) lo = m; else hi = m - 1; } return lo; }
+function barLabel(b) { return b.segs.map(s => shapeName(nm(s))).join(' · '); }
+function barBg(b) { const c = b.segs.map(s => D.color[s.ch] || 'var(--kx)'); return c.length > 1 ? `linear-gradient(90deg, ${c[0]} 50%, ${c[1]} 50%)` : c[0]; }
+function winStart(bi) { return bi < D.off ? D.off : D.off + Math.floor((bi - D.off) / 8) * 8; }
+
+// ---------------- Cizim ----------------
+function renderHeader() {
+  const A = S.analysis, k = A.key;
+  $('titleBtn').textContent = S.title; document.title = S.title + (APP ? ' · Sextant' : ' · Kılavuz');
+  const chips = [`<b class="mono">${Math.round(A.bpm)}</b> BPM`, `<b>${D.M}/4</b> ölçü`, `Ton <b>${(k.mode === 'min' ? MIN[k.pc].slice(0, -1) + ' minör' : MAJ[k.pc] + ' majör')}</b>`,
+    `<b>${D.uniq.length}</b> akor`, `Süre <b class="mono">${fmt(A.duration)}</b>`, `Önerilen kapo <b>${D.bestCapo ? D.bestCapo + '. perde' : 'yok'}</b>`];
+  if (Math.abs(A.tuning_cents) >= 20) chips.push(`Kayıt akorttan <b>${A.tuning_cents > 0 ? '+' : ''}${A.tuning_cents} cent</b> sapıyor`);
+  if (A.edited) chips.push('Elle düzeltildi');
+  if (S.status === 'queued' || S.status === 'working') chips.push(`<span id="reMsg">Yeniden analiz: ${esc(S.message || '')} %${S.pct || 0}</span>`);
+  else if ((A.version || 1) < 2) chips.push('Eski akor analizi · <button type="button" class="linkbtn" id="reBtn">yeni modelle yeniden analiz et</button>');
+  if (S.warn) chips.push(`<span title="${esc(S.yt_title || '')}">⚠ ${esc(S.warn)}</span>`);
+  if (S.yt_id) chips.push(`Ses: <a href="https://www.youtube.com/watch?v=${esc(S.yt_id)}" target="_blank" rel="noopener">YouTube</a>`);
+  $('chips').innerHTML = chips.map(c => `<span class="chip">${c}</span>`).join('');
+}
+let rePoll = null;
+async function pollReanalyze(id) {
+  clearTimeout(rePoll);
+  let m; try { m = await api('/api/songs/' + id); } catch (e) { return; }
+  if (!S || S.id !== id) return;
+  if (m.status === 'done') { const t = now(); await openSong(id); seek(t); return; }
+  if (m.status === 'error') { S.status = 'error'; $('status').textContent = 'Yeniden analiz olmadı: ' + (m.message || ''); renderHeader(); return; }
+  S.status = m.status; S.message = m.message; S.pct = m.pct; renderHeader();
+  rePoll = setTimeout(() => pollReanalyze(id), 2000);
+}
+function renderLoop() {
+  const p = $('loopPanel'); if (!D.loop) { p.hidden = true; return; } p.hidden = false;
+  $('loopH').textContent = `Şarkının %${Math.round(D.loop.agree * 100)}'i bu ${D.loop.P} ölçü`;
+  $('loopCells').innerHTML = D.loop.loop.map((lab, i) => { const cs = lab.split('|'); const bg = cs.length > 1 ? `linear-gradient(90deg, ${D.color[cs[0]] || 'var(--kx)'} 50%, ${D.color[cs[1]] || 'var(--kx)'} 50%)` : (D.color[cs[0]] || 'var(--kx)');
+    const nm = cs.map(shapeName).join(' · '), heard = cs.map(disp).join(' · ');
+    return `<div class="cell" style="background:${bg}"><small>${i + 1}. ölçü</small>${nm}${nm !== heard ? `<small>${heard}</small>` : ''}</div>`; }).join('');
+}
+function renderShapes() {
+  document.querySelectorAll('#levelSeg button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.l === level ? 'true' : 'false'); if (b.dataset.l === 'easy') b.textContent = capo ? `Kolay · Kapo ${capo}` : 'Kolay · Kaposuz'; });
+  $('capoRow').hidden = level !== 'easy';
+  $('capoVal').textContent = capo;
+  $('capoHint').textContent = capo === D.bestCapo ? '(önerilen)' : `(önerilen: ${D.bestCapo})`;
+  const notes = {
+    easy: capo ? `Kapoyu ${capo}. perdeye tak, sonra kapo yokmuş gibi bu şekilleri bas: kayıtla aynı tonda duyulur. Diyagramdaki perdeler kapoya göredir. Barre gerektiren akorlar yerine mümkünse kolay benzeri seçildi.` : 'Kapo gerekmiyor. Barre gerektiren akorlar yerine mümkünse kolay benzeri seçildi.',
+    power: 'Elektro gitar için güç akorları: iki ya da üç parmaklı tek şekil, teller üzerinde kayar. Kapo yok.',
+    orig: 'Kayıttaki gerçek akorlar, kaposuz. Barre akorlarda işaret parmağı tüm telleri birden basar.' };
+  $('levelNote').textContent = notes[level];
+  $('capoMap').innerHTML = level === 'easy' ? D.uniq.slice(0, 10).filter(c => shapeName(c) !== disp(c)).map(c => `<span>${disp(c)} <i>yerine</i> ${shapeName(c)}</span>`).join('') : '';
+  const seenSh = new Set();  // aynı şekle düşen akorlar (C#m ve C#m7 kapo 2'de ikisi de Bm7) bir kez gösterilir
+  $('shapes').innerHTML = D.uniqExt.filter(c => { const n = shapeName(c); if (seenSh.has(n)) return false; seenSh.add(n); return true; }).slice(0, 12).map(c => { const sh = shapeOf(c), col = colorOf(c);
+    return `<div class="shape"><div class="title"><span class="swatch" style="background:${col}"></span><b>${sh.name}</b>${sh.name !== disp(c) ? `<span class="muted">→ ${disp(c)}</span>` : ''}</div>${diagram(sh, col)}<div class="code">${sh.frets.map(f => f < 0 ? 'x' : f).join(' ')}</div></div>`; }).join('');
+}
+// ritim kalıbı: kayıttan çıkarılan (o 8 ölçülük bölümde gitarın vurduğu 8'likler) ya da varsayılan.
+// Vuruşa denk gelen aşağı (↓), aradaki yukarı (↑) çalınır; el boş yuvada da havada iner-kalkar.
+function strumPattern(bi) {
+  const E = 2 * D.M, A = S.analysis;
+  if (A.strum && bi >= 0) {
+    const w0 = winStart(bi), sum = new Array(E).fill(0); let n = 0;
+    for (let b = w0; b < Math.min(D.bars.length, w0 + 8); b++) {
+      const bar = D.bars[b]; if (bar.pickup || bar.n !== D.M || bar.label === 'N') continue;
+      const v = []; for (let k = 0; k < D.M; k++) { const x = A.strum[bar.b0 + k] || [0, 0]; v.push(x[0], x[1]); }
+      if (Math.max(...v) < 0.5) continue;  // gitar susuyor
+      v.forEach((x, i) => sum[i] += x); n++;
+    }
+    if (n >= 2) { const m = sum.map(x => x / n); return { a: m.map((x, i) => x >= 0.5 ? (i % 2 ? '↑' : '↓') : ''), acc: m.map((x, i) => i % 2 === 0 && x >= 0.85 ? i : -1).filter(i => i >= 0), src: 'kayıttan' }; }
+  }
+  const a = level === 'power' ? Array.from({ length: E }, (_, i) => i % 2 ? '' : '↓') : Array.from({ length: E }, (_, i) => i % 2 ? '↑' : '↓');
+  return { a, acc: level === 'power' ? a.map((_, i) => i).filter(i => i % 2 === 0) : [0], src: 'önerilen' };
+}
+let strumKey = '';
+function renderStrum(cur) {
+  const pat = strumPattern(curBar), key = pat.a.join('') + pat.src + cur;
+  if (key === strumKey) return; strumKey = key;
+  const el = $('strum'); el.title = pat.src === 'kayıttan' ? 'Ritim kalıbı kayıttaki gitardan çıkarıldı (bu 8 ölçülük bölüm için, deneysel): ↓ vuruşta aşağı, ↑ arada yukarı, · boş (el havada iner-kalkar)' : 'Kayıttan kalıp çıkarılamadı: önerilen düz kalıp';
+  el.innerHTML = pat.a.map((x, i) => `<span class="${pat.acc.includes(i) ? 'acc' : ''} ${i === cur ? 'cur' : ''}">${x || '·'}</span>`).join('');
+}
+function renderTab() {
+  const lvl = level === 'power' ? 'easy' : level, w0 = winStart(Math.max(0, curBar)); curWin = w0;
+  $('tabH').textContent = lvl === 'easy' && capo ? `Arpej tab'ı · kapo ${capo}` : `Arpej tab'ı · kaposuz`;
+  let html = '';
+  for (let bi = w0; bi < Math.min(D.bars.length, w0 + 8); bi++) {
+    const E = 2 * D.M, b = D.bars[bi], notes = new Array(E).fill(null), shift = (D.M - b.n) * 2;
+    b.segs.forEach(s => { const a = arpOf(s.ch, lvl, capo); if (!a) return; const st = (s.b0 - b.b0) * 2 + shift; for (let j = 0; j < s.n * 2 && st + j < E; j++) notes[st + j] = a[j % 8]; });
+    let cells = '';
+    for (let r = 0; r < 6; r++) for (let c = 0; c < E; c++) { const n = notes[c]; cells += `<span class="tc">${n && n[0] === r ? `<b>${n[1]}</b>` : ''}</span>`; }
+    const name = b.segs.map(s => { const sh = shapeAt(s.ch, lvl, capo); return `<span style="color:${D.color[s.ch] || 'var(--muted)'}">${sh ? sh.name : '–'}</span>`; }).join(' · ');
+    html += `<div class="tbar" data-bar="${bi}"><div class="th"><span>${name}</span><small>ölçü ${bi + 1 - D.off}</small></div><div class="tbody"><div class="tl">${STRINGS.map(x => `<span>${x}</span>`).join('')}</div><div class="tg" style="grid-template-columns:repeat(${E},1fr)"><i class="hl" style="width:${100 / E}%"></i>${cells}</div></div><div class="tcount" style="grid-template-columns:repeat(${E},1fr)">${Array.from({ length: E }, (_, k) => k % 2 ? 've' : String(k / 2 + 1)).map(x => `<span>${x}</span>`).join('')}</div></div>`;
+  }
+  $('tab').innerHTML = html;
+}
+function renderTimeline() {
+  let html = ''; const rows = [];
+  if (D.off) rows.push([0, 1]);
+  for (let a = D.off; a < D.bars.length; a += 8) rows.push([a, Math.min(D.bars.length, a + 8)]);
+  D.rows = rows;
+  rows.forEach(([a, z], ri) => {
+    let cells = '', voc = 0;
+    for (let bi = a; bi < z; bi++) { const b = D.bars[bi]; voc += b.voc;
+      cells += `<button type="button" class="bar${b.low ? ' low' : ''}${D.marks[bi] ? ' ' + D.marks[bi] : ''}" data-bar="${bi}" style="background:${barBg(b)}" title="Ölçü ${bi + 1 - D.off} · ${fmt(b.t)} · duyulan ${b.segs.map(s => disp(s.ch)).join(' · ')}${b.low ? ' · emin değil' + (b.alt ? ', belki ' + disp(b.alt) : '') : ''}">${barLabel(b)}</button>`; }
+    const tag = D.bars[a].pickup ? 'Giriş (eksik ölçü)' : `Ölçü ${a + 1 - D.off}–${z - D.off}`;
+    html += `<div class="row" data-row="${ri}"><div class="meta"><b>${tag}</b><span><span class="mono">${fmt(D.bars[a].t)}</span> · ${voc / (z - a) > 0.4 ? 'vokal' : 'enstrümantal'}</span></div><div class="bars">${cells}</div><button type="button" class="loopbtn" data-loop="${ri}" aria-pressed="false">Döngüle</button></div>`;
+  });
+  $('timeline').innerHTML = html; markLoop(); curBar = -1;
+}
+function renderAll() { strumKey = ''; $('dots').innerHTML = Array.from({ length: D.M }, (_, k) => `<span class="dot">${k + 1}</span>`).join(''); renderHeader(); renderLoop(); renderShapes(); renderStrum(-1); renderTimeline(); renderSheet(); update(); renderTab(); update(); }
+function markLoop() { document.querySelectorAll('.loopbtn').forEach(b => { const on = +b.dataset.loop === loopRow; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? 'Döngüde' : 'Döngüle'; b.closest('.row').classList.toggle('inloop', on); }); }
+
+// ---------------- Calma ----------------
+function ensureCtx() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } } if (actx && actx.state === 'suspended') actx.resume().catch(() => {}); return actx; }
+function tick(accent) { if (!clickOn || !actx) return; const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = accent ? 1500 : 1000; g.gain.setValueAtTime(accent ? 0.35 : 0.2, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.06); o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + 0.07); }
+function now() { return audio.currentTime || 0; }
+function seek(t) { t = Math.max(0, Math.min(D.dur - 0.05, t)); audio.currentTime = t; lastBeat = beatAt(t); lastSeg = -1; L.waiting = null; L.unlocked.clear(); $('waitMsg').hidden = true; update(t); }
+function setPlayBtn() { $('playBtn').textContent = playing ? '❚❚ Duraklat' : '▶ Başlat'; }
+function play() { ensureCtx(); audio.playbackRate = rate; audio.preservesPitch = true; playing = true; setPlayBtn(); audio.play().catch(() => { playing = false; setPlayBtn(); $('status').textContent = 'Ses başlatılamadı. Başlat düğmesine tekrar bas.'; }); }
+function pause() { playing = false; L.waiting = null; $('waitMsg').hidden = true; audio.pause(); setPlayBtn(); }
+function setSource(kind) { const t = now(), was = playing; srcKind = kind; audio.pause(); audio.src = `/media/${S.id}/${kind}.mp3`; audio.addEventListener('loadedmetadata', () => { audio.currentTime = t; audio.playbackRate = rate; if (was) audio.play().catch(() => {}); }, { once: true }); document.querySelectorAll('#srcSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === kind ? 'true' : 'false')); }
+
+function locate(t) { let bi = beatAt(t + 0.005);  // ses öğesi zamanı yuvarlar (8.2 -> 8.199999): vuruş başında bir önceki vuruşa düşmesin
+  const pre = bi < 0; if (pre) bi = 0; const bar = D.beat2bar[bi], b = D.bars[bar]; const seg = b.segs.find(s => bi >= s.b0 && bi < s.b0 + s.n) || b.segs[0]; return { bi, pre, bar, b, seg }; }
+function update(t) {
+  if (!D) return; if (t === undefined) t = now();
+  const { bi, pre, bar, b, seg } = locate(t);
+  let nx = null; for (let k = seg.idx + 1; k < D.segs.length; k++) if (D.segs[k].ch !== seg.ch) { nx = D.segs[k]; break; }
+  const nowEl = $('nowName'); nowEl.textContent = shapeName(nm(seg)); nowEl.style.color = D.color[seg.ch] || 'var(--muted)';
+  $('nowSub').textContent = seg.ch === 'N' ? 'sessiz' : (shapeName(nm(seg)) !== disp(nm(seg)) ? 'duyulan: ' + disp(nm(seg)) : '');
+  const nxEl = $('nextName'); nxEl.textContent = nx ? shapeName(nm(nx)) : 'son'; nxEl.style.color = nx ? (D.color[nx.ch] || 'var(--muted)') : 'var(--muted)';
+  $('nextSub').textContent = nx ? `${nx.b0 - bi} vuruş sonra` : '';
+  const inBar = pre ? -1 : bi - b.b0 + (D.M - b.n);
+  document.querySelectorAll('#dots .dot').forEach((d, i) => d.classList.toggle('on', i === inBar));
+  let eighth = -1;
+  if (!pre) { const len = bi + 1 < D.NB ? D.beats[bi + 1] - D.beats[bi] : D.period; eighth = inBar * 2 + ((t - D.beats[bi]) / len >= 0.5 ? 1 : 0); }
+  renderStrum(eighth);
+  $('pos').textContent = `Ölçü ${Math.max(1, bar + 1 - D.off)} / ${D.bars.length - D.off} · ${fmt(t)} / ${fmt(D.dur)}`;
+  $('progressFill').style.width = (100 * t / D.dur) + '%';
+  if (bar !== curBar) {
+    document.querySelectorAll('.bar.cur').forEach(e => e.classList.remove('cur'));
+    const el = document.querySelector(`.bar[data-bar="${bar}"]`); if (el) el.classList.add('cur');
+    curBar = bar; if (winStart(bar) !== curWin) renderTab();
+  }
+  document.querySelectorAll('#tab .tbar').forEach(e => { const on = +e.dataset.bar === bar; e.classList.toggle('cur', on); if (on) e.querySelector('.hl').style.left = (Math.max(0, eighth) * 100 / (2 * D.M)) + '%'; });
+  syncSheet(t);
+  return { bi, pre, seg };
+}
+function frame() {
+  if (D && playing && L.waiting === null) {
+    let t = now();
+    if (loopRow !== null && D.rows[loopRow]) { const [a, z] = D.rows[loopRow], s0 = D.bars[a].t, s1 = D.bars[z - 1].end; if (t >= s1 - 0.02 || t < s0 - 0.5) { seek(s0); t = s0; } }
+    const st = update(t);
+    if (st.bi !== lastBeat) { if (!st.pre && st.bi > lastBeat) tick((st.bi - D.bars[D.beat2bar[st.bi]].b0) === 0); lastBeat = st.bi; }
+    if (st.seg.idx !== lastSeg) { onSegChange(lastSeg, st.seg); lastSeg = st.seg.idx; }
+  }
+  if (L.on) listenTick();
+  requestAnimationFrame(frame);
+}
+
+// ---------------- Dinleme: gitarin dogru akoru calip calmadigi ----------------
+const L = { on: false, stream: null, node: null, an: null, mon: null, fbuf: null, tbuf: null, pm: null, last: 0, dbg: null,
+  tpl: null, stats: new Map(), hits: 0, total: 0, waiting: null, run: 0, unlocked: new Set(), det: null, pass: false, db: -100 };
+function buildTemplates() { const T = []; for (let r = 0; r < 12; r++) for (const iv of [[0, 4, 7], [0, 3, 7]]) { const v = new Float32Array(12); v[r] = 1; v[(r + iv[1]) % 12] = 0.6; v[(r + 7) % 12] = 0.8; const n = Math.hypot(...v); T.push(v.map(x => x / n)); } return T; }
+function tplIndex(ch) { const p = parse(ch); return p ? p.pc * 2 + (p.min ? 1 : 0) : -1; }
+function tplLabel(i) { return NOTES[i >> 1] + (i & 1 ? 'm' : ''); }
+function listenReset() { L.tpl = L.tpl || buildTemplates(); L.stats.clear(); L.log = []; L.hits = 0; L.total = 0; L.unlocked.clear(); L.waiting = null; D.marks = {}; L.fluxHist = []; document.querySelectorAll('.bar.hit,.bar.miss').forEach(e => e.classList.remove('hit', 'miss')); }
+// Uygulamada mikrofonu iOS'un kendi ses motoru açar (ham ses, düşük gecikme); spektrum hesabı orada yapılıp buraya yollanır.
+window.__nativeHear = h => { L.nh = h; };
+window.__nativeListenError = msg => { listenStop(); $('status').textContent = msg; };
+async function listenStart() {
+  if (APP) {
+    if (!native('listenStart', { monitor: $('monIn').checked })) { $('status').textContent = 'Uygulamanın ses girişine ulaşılamadı.'; return; }
+    L.native = true; L.nh = null; L.lastSeq = -1; listenReset(); $('micSel').hidden = true;
+    L.on = true; $('listenBtn').setAttribute('aria-pressed', 'true'); $('listenBtn').textContent = 'Dinliyorum (kapat)'; $('score').textContent = '';
+    $('status').textContent = 'Dinliyorum. Mikrofonla dinletiyorsan şarkıyı kulaklıktan çal, yoksa şarkının kendi sesi de duyulur.';
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('status').textContent = 'Bu tarayıcı ses girişine izin vermiyor.'; return; }
+  const ctx = ensureCtx(); if (!ctx) return;
+  const want = $('micSel').value;
+  try {
+    L.stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: want ? { exact: want } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  } catch (e) { $('status').textContent = 'Ses girişi açılamadı: izin verilmedi ya da cihaz bulunamadı.'; return; }
+  L.node = ctx.createMediaStreamSource(L.stream); L.an = ctx.createAnalyser(); L.an.fftSize = 16384; L.an.smoothingTimeConstant = 0.35; L.node.connect(L.an);
+  L.an2 = ctx.createAnalyser(); L.an2.fftSize = 1024; L.an2.smoothingTimeConstant = 0; L.node.connect(L.an2); L.f2 = new Float32Array(512); L.m2 = new Float32Array(512); L.fluxHist = [];
+  L.mon = ctx.createGain(); L.mon.gain.value = $('monIn').checked ? 1 : 0; L.node.connect(L.mon).connect(ctx.destination);
+  const nb = L.an.frequencyBinCount; L.fbuf = new Float32Array(nb); L.tbuf = new Float32Array(2048);
+  // Her perde (E2..E6) icin ilk 4 harmonigin FFT kutulari: armoniklerin baska notaymis gibi sayilmasini onler.
+  L.pm = []; for (let p = 40; p <= 88; p++) { const f = 440 * Math.pow(2, (p - 69) / 12), hs = []; for (let h = 1; h <= 4; h++) { const k = Math.round(h * f * L.an.fftSize / ctx.sampleRate); if (k > 0 && k < nb - 1) hs.push(k); } L.pm.push(hs); }
+  L.tpl = L.tpl || buildTemplates(); L.stats.clear(); L.log = []; L.hits = 0; L.total = 0; L.unlocked.clear(); L.waiting = null; D.marks = {}; document.querySelectorAll('.bar.hit,.bar.miss').forEach(e => e.classList.remove('hit', 'miss'));
+  L.on = true; $('listenBtn').setAttribute('aria-pressed', 'true'); $('listenBtn').textContent = 'Dinliyorum (kapat)'; $('score').textContent = '';
+  try { const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput'); const cur = L.stream.getAudioTracks()[0].getSettings().deviceId;
+    $('micSel').innerHTML = devs.map(d => `<option value="${esc(d.deviceId)}"${d.deviceId === cur ? ' selected' : ''}>${esc(d.label || 'Ses girişi')}</option>`).join(''); $('micSel').hidden = devs.length < 2; } catch (e) { /* liste alinamadi */ }
+  $('status').textContent = 'Dinliyorum. iRig ile doğrudan bağlıysan sorun yok. Mikrofonla dinletiyorsan şarkıyı kulaklıktan çal, yoksa şarkının kendi sesi de duyulur.';
+}
+function listenStop() { if (L.native) { native('listenStop'); L.native = false; L.nh = null; } L.on = false; L.waiting = null; if (L.stream) L.stream.getTracks().forEach(t => t.stop()); try { L.node && L.node.disconnect(); } catch (e) { /* yok */ } L.stream = L.node = L.an = L.an2 = null;
+  $('listenBtn').setAttribute('aria-pressed', 'false'); $('listenBtn').textContent = 'Beni dinle'; $('heard').textContent = ''; $('heard').className = 'heard'; $('meterFill').style.width = '0'; $('waitMsg').hidden = true; }
+function hear() {
+  if (L.native) { const h = L.nh; if (!h) return { sc: new Array(24).fill(0), best: 0, bass: -1, loud: false }; L.db = h.db; return h; }
+  L.an.getFloatTimeDomainData(L.tbuf); let e = 0; for (let i = 0; i < L.tbuf.length; i++) e += L.tbuf[i] * L.tbuf[i];
+  L.db = 10 * Math.log10(e / L.tbuf.length + 1e-12);
+  L.an.getFloatFrequencyData(L.fbuf); const c = new Float32Array(12), F = L.fbuf, HW = [1, 0.8, 0.6, 0.5], sal = new Float32Array(L.pm.length), fund = new Float32Array(L.pm.length);
+  for (let p = 0; p < L.pm.length; p++) { const hs = L.pm[p]; let s = 0; for (let h = 0; h < hs.length; h++) { const k = hs[h]; const a = Math.pow(10, Math.max(F[k - 1], F[k], F[k + 1]) / 20); if (h === 0) fund[p] = a; s += HW[h] * a; } sal[p] = s; c[(p + 40) % 12] += s; }
+  let bmax = 0, fmax = 0; for (let p = 0; p <= 24; p++) { if (sal[p] > bmax) bmax = sal[p]; if (fund[p] > fmax) fmax = fund[p]; }
+  // en pes guclu nota; temel frekansi olmayan (bir oktav alttaki hayalet) adaylar sayilmaz
+  let bass = -1; for (let p = 0; p <= 24; p++) if (sal[p] >= 0.6 * bmax && fund[p] >= 0.15 * fmax) { bass = (p + 40) % 12; break; }
+  let n = 0; for (let i = 0; i < 12; i++) n += c[i] * c[i]; n = Math.sqrt(n) + 1e-12;
+  const sc = L.tpl.map((t, ix) => { let s = 0; for (let i = 0; i < 12; i++) s += t[i] * c[i]; return s / n + ((ix >> 1) === bass ? 0.12 : 0); });
+  let best = 0; for (let i = 1; i < 24; i++) if (sc[i] > sc[best]) best = i;
+  return { sc, best, bass, loud: L.db > -52 };
+}
+// Gecer: beklenen akor en iyi eslesme ya da ona cok yakin. Power chord'da ucluk olmadigi icin major/minor ayrimi aranmaz.
+function judge(h, ch) { const ix = tplIndex(ch); if (ix < 0 || !h.loud) return false; const s = level === 'power' ? Math.max(h.sc[ix], h.sc[ix ^ 1]) : h.sc[ix]; return s >= h.sc[h.best] - 0.04 && s > 0.55; }
+function listenTick() {
+  const t = performance.now();
+  if (L.native) { if (!L.nh || L.nh.seq === L.lastSeq) return; L.lastSeq = L.nh.seq; } else if (t - L.last < 45) return;
+  L.last = t;
+  const h = hear(); L.dbg = h;
+  // vurus (tel atagi) tespiti: son ~150 ms'deki en dusuk seviyeye gore ani yukselis. Calinmayan, sadece cinlayan olcuyu ayirt eder.
+  // spektral aki: yeni enerji gelen frekanslarin toplami / toplam enerji (kisa pencere, 23 ms)
+  let fr;
+  if (L.native) fr = h.fr || 0;
+  else { L.an2.getFloatFrequencyData(L.f2); let flux = 0, tot = 0;
+    for (let k = 2; k < 240; k++) { const m = Math.pow(10, L.f2[k] / 20); const d = m - L.m2[k]; if (d > 0) flux += d; tot += m; L.m2[k] = m; }
+    fr = flux / (tot + 1e-9); } L.fluxHist = L.fluxHist.concat(fr).slice(-40);
+  const med = L.fluxHist.slice().sort((a, b) => a - b)[Math.floor(L.fluxHist.length / 2)];
+  const onset = L.db > -60 && fr > Math.max(0.22, 1.8 * med) && t - (L.lastOnset || 0) > 100; if (onset) L.lastOnset = t;
+  $('meterFill').style.width = Math.max(0, Math.min(100, (L.db + 70) * 1.6)) + '%';
+  const seg = D.segs[L.waiting !== null ? L.waiting : locate(now()).seg.idx], ok = judge(h, seg.ch);
+  L.det = h.loud ? tplLabel(h.best) : null; L.pass = ok;
+  const el = $('heard');
+  if (!h.loud) { el.textContent = 'Ses yok'; el.className = 'heard'; }
+  else if (ok) { el.textContent = 'Duyduğum: ' + disp(seg.ch) + ' ✓'; el.className = 'heard ok'; }
+  else { el.textContent = 'Duyduğum: ' + disp(L.det) + ' ✗'; el.className = 'heard no'; }
+  if (L.waiting !== null) { L.run = ok ? L.run + 1 : 0; if (L.run >= 3) { const s = L.waiting; L.unlocked.add(s); L.waiting = null; L.run = 0; $('waitMsg').hidden = true; record(D.segs[s], true); L.stats.set(s, { done: true }); audio.play().catch(() => {}); } return; }
+  if (playing && seg.ch !== 'N') { let st = L.stats.get(seg.idx); if (!st) { st = { sig: 0, pass: 0, on: 0, n: 0 }; L.stats.set(seg.idx, st); } st.n++; if (onset) st.on++; if (!st.done && h.loud) { st.sig++; if (ok) st.pass++; } }
+}
+function record(seg, hit) { L.total++; if (hit) L.hits++; const prev = D.marks[seg.bar]; D.marks[seg.bar] = (prev === 'miss' || !hit) ? 'miss' : 'hit';
+  const el = document.querySelector(`.bar[data-bar="${seg.bar}"]`); if (el) { el.classList.remove('hit', 'miss'); el.classList.add(D.marks[seg.bar]); }
+  $('score').textContent = `İsabet ${L.hits}/${L.total}`; }
+function onSegChange(prevIdx, seg) {
+  if (!L.on) return;
+  if (prevIdx >= 0) { const st = L.stats.get(prevIdx), p = D.segs[prevIdx]; if (p.ch !== 'N' && !(st && st.done)) { (L.log = L.log || []).push({ bar: p.bar, ...(st || {}) }); record(p, !!st && st.on >= Math.min(2, p.n) && st.sig >= Math.max(3, 0.5 * st.n) && st.pass / st.sig >= 0.35); } L.stats.delete(prevIdx); }  // isabet: calinmali (vurus var), olcu boyunca duyulmali, cogunlukla dogru akor olmali
+  L.stats.delete(seg.idx);
+  if ($('waitIn').checked && seg.ch !== 'N' && !L.unlocked.has(seg.idx) && (prevIdx < 0 || D.segs[prevIdx].ch !== seg.ch)) {
+    L.waiting = seg.idx; L.run = 0; audio.pause(); const w = $('waitMsg'); w.hidden = false; w.textContent = `Bekliyorum: ${shapeName(nm(seg))} bas`; update(seg.t0 + 0.001);
+  }
+}
+
+// ---------------- Duzeltme ----------------
+async function saveEdits() { await api(`/api/songs/${S.id}/edits`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chords: S.analysis.chords, phase: S.analysis.phase }) }); S.analysis.edited = true; }
+function rederive() { const keep = capo; derive(); capo = keep; renderAll(); }
+function setEditMode(on) { editMode = on; editBar = null; $('editAlt').hidden = true; $('editBtn').setAttribute('aria-pressed', on ? 'true' : 'false'); $('editBar').hidden = !on; $('editInfo').textContent = 'Düzeltmek için bir ölçüye tıkla.'; document.querySelectorAll('.bar.sel').forEach(e => e.classList.remove('sel')); }
+
+// ---------------- Sozler ve akorlar ----------------
+const VOW = /[aeıioöuüâîûAEIİOÖUÜ]/;
+let SH = null, lyrPoll = null, lastUserScroll = 0, progScrollAt = 0, shCur = { li: -1, wi: -1, blk: -1, bar: -1 };
+function chordChanges() {
+  const out = [];
+  for (const s of D.segs) { const c = nm(s); if (!out.length || out[out.length - 1].ch !== c) out.push({ t: s.t0, ch: c }); }
+  return out;
+}
+function chordAt(t) { const ch = chordChanges(); let c = null; for (const x of ch) { if (x.t <= t + 1e-3) c = x; else break; } return c; }
+function snapSyl(w, idx) {
+  if (idx <= 1) return 0; if (idx >= w.length - 1) return w.length;
+  let best = idx, bd = 99;
+  for (let j = 1; j < w.length; j++) { const ok = (!VOW.test(w[j]) && j + 1 < w.length && VOW.test(w[j + 1])) || (VOW.test(w[j]) && VOW.test(w[j - 1])); if (ok && Math.abs(j - idx) < bd) { bd = Math.abs(j - idx); best = j; } }
+  return bd <= 2 ? best : idx;
+}
+// Saf hesap: satirlar + akor degisimleri -> ekrana dizilecek bloklar (test icin de kullanilir)
+function computeSheet(lines, changes, bars, period) {
+  lines = (lines || []).filter(l => l.words && l.words.length).slice().sort((a, b) => a.t0 - b.t0);
+  const blocks = [], real = changes.filter(c => c.ch !== 'N');
+  const LEAD = Math.max(0.25, 0.75 * period);  // ilk kelimeden en fazla ~1 vurus once degisen akor o satira aittir
+  const SNAP = Math.min(0.35, Math.max(0.25, 0.5 * period));  // zamanlama hatasi payi
+  // iki satir arasindaki bosluga BASLAYAN olculer; en az 2 olcu varsa enstrumantal blok olur (giris/bitis icin 1 yeter)
+  const gapBars = (from, to) => { const bs = []; bars.forEach((b, i) => { if (b.t >= from - 0.05 && b.t < to && b.label !== 'N') bs.push(i); }); return bs; };
+  const ends = lines.map(l => l.words[l.words.length - 1].t1), starts = lines.map(l => l.words[0].t0);
+  const instrAfter = lines.map((l, i) => {
+    const bs = gapBars(ends[i], i + 1 < lines.length ? starts[i + 1] - LEAD : Infinity);
+    return (bs.length >= 2 || (i === lines.length - 1 && bs.length)) ? bs : null;
+  });
+  const intro = lines.length ? gapBars(-1, starts[0] - LEAD) : gapBars(-1, Infinity);
+  if (intro.length) blocks.push({ type: 'instr', label: lines.length ? 'Giriş' : 'Akorlar', bars: intro, t0: bars[intro[0]].t });
+  lines.forEach((ln, li) => {
+    const first = starts[li], lastW = ln.words[ln.words.length - 1];
+    const prevInstr = li ? instrAfter[li - 1] : null;
+    const winStart = li === 0 ? (intro.length ? first - LEAD : -1) : (prevInstr ? first - LEAD : starts[li] - LEAD);
+    const winEnd = instrAfter[li] ? bars[instrAfter[li][0]].t : (li + 1 < lines.length ? starts[li + 1] - LEAD : Infinity);
+    const marks = ln.words.map(() => []), lead = [], tail = [];
+    const inWin = real.filter(c => c.t >= winStart && c.t < winEnd);
+    const pre = inWin.filter(c => c.t < first);
+    let act = null; for (const x of changes) { if (x.t <= first + 1e-3) act = x; else break; }
+    if (pre.length) { pre.slice(0, -1).forEach(c => lead.push(c.ch)); marks[0].push({ i: 0, ch: pre[pre.length - 1].ch }); }
+    else if (act && act.ch !== 'N') marks[0].push({ i: 0, ch: act.ch });
+    for (const c of inWin) {
+      if (c.t < first) continue;
+      let k = 0; for (let j = 0; j < ln.words.length; j++) if (ln.words[j].t0 <= c.t + 0.15) k = j;
+      const w = ln.words[k], nw = ln.words[k + 1];
+      if (c.t > w.t1 + 0.05) {  // kelimeler arasi bosluk: yakin olana
+        if (nw) marks[k + 1].push({ i: 0, ch: c.ch }); else tail.push(c.ch);
+        continue;
+      }
+      if (c.t - w.t0 < SNAP) { marks[k].push({ i: 0, ch: c.ch }); continue; }
+      const frac = (c.t - w.t0) / Math.max(0.05, w.t1 - w.t0);
+      const idx = snapSyl(w.w, Math.round(Math.max(0, Math.min(1, frac)) * w.w.length));
+      if (idx >= w.w.length) { if (nw) marks[k + 1].push({ i: 0, ch: c.ch }); else tail.push(c.ch); continue; }
+      marks[k].push({ i: idx, ch: c.ch });
+    }
+    marks.forEach((m, k) => { const byI = {}; m.forEach(x => byI[x.i] = x.ch); marks[k] = Object.keys(byI).map(Number).sort((a, b) => a - b).map(i => ({ i, ch: byI[i] })); });
+    blocks.push({ type: 'line', li, label: ln.label || null, words: ln.words, marks, lead, tail, t0: first - LEAD, t1: lastW.t1 });
+    if (instrAfter[li]) { const bs = instrAfter[li]; blocks.push({ type: 'instr', label: li === lines.length - 1 ? 'Bitiş' : 'Enstrümantal', bars: bs, t0: bars[bs[0]].t }); }
+  });
+  return blocks;
+}
+function lyrSourceText(L) {
+  const src = { lrclib: 'LRCLIB arşivinden' + (L.name ? ': ' + L.name : ''), whisper: 'Vokalden otomatik çıkarıldı, hata olabilir', user: 'Senin metnin', instrumental: 'Enstrümantal' }[L.source] || '';
+  return src + (L.timing === 'line' ? ' (satır zamanlı)' : '');
+}
+function renderSheet() {
+  const box = $('sheet'), st = $('lyrStat'), L = S.lyrics;
+  const busy = S.lyr_status === 'queued' || S.lyr_status === 'working';
+  st.hidden = !(busy || S.lyr_status === 'error');
+  if (busy) st.innerHTML = `<span class="fine">${esc(S.lyr_msg || 'Sırada')} · %${S.lyr_pct || 0}</span><div class="pbar"><div style="width:${S.lyr_pct || 0}%"></div></div>`;
+  else if (S.lyr_status === 'error') st.innerHTML = `<span class="fine" style="color:var(--bad)">Sözler çıkarılamadı: ${esc(S.lyr_msg || '')}. Sözleri yapıştırarak deneyebilirsin.</span>`;
+  $('lyrSrc').textContent = L ? lyrSourceText(L) : '';
+  $('lyrCopy').hidden = !L;
+  SH = computeSheet(L ? L.lines : [], chordChanges(), D.bars, D.period);
+  shCur = { li: -1, wi: -1, blk: -1, bar: -1 };
+  const lab = ch => `<b class="cd" style="color:${colorOf(ch)}">${esc(shapeName(ch))}</b>`;
+  let html = '';
+  if (!L && !busy) html += '<p class="fine">Bu şarkı için henüz söz yok. "Sözleri düzenle" ile yapıştırabilirsin.</p>';
+  if (L && !L.lines.length) html += `<p class="fine">${L.source === 'instrumental' ? 'Şarkı enstrümantal.' : 'Vokal bulunamadı.'} Akorlar ölçü ölçü aşağıda.</p>`;
+  SH.forEach((b, bi) => {
+    if (b.type === 'instr') { html += `<div class="instr" data-blk="${bi}"><span class="llabel">${b.label}</span>${b.bars.map(x => `<button type="button" class="ibar" data-bar="${x}" style="color:${D.color[D.bars[x].segs[0].ch] || 'var(--muted)'}">${esc(barLabel(D.bars[x]))}</button>`).join('')}</div>`; return; }
+    if (b.label) html += `<div class="llabel">${esc(b.label)}</div>`;
+    let inner = b.lead.length ? `<span class="lead">${b.lead.map(c => `<span class="ck">${lab(c)}<span class="lx"> </span></span>`).join('')}</span>` : '';
+    // chunk'lar: akor isaretlerinden bolunmus metin parcalari
+    let cur = { ch: null, parts: [] }; const chunks = [cur];
+    b.words.forEach((w, k) => {
+      const txt = w.w + (k < b.words.length - 1 ? ' ' : ''); let pos = 0;
+      for (const m of b.marks[k]) { if (m.i > pos) cur.parts.push({ k, s: txt.slice(pos, m.i) }); cur = { ch: m.ch, parts: [] }; chunks.push(cur); pos = m.i; }
+      cur.parts.push({ k, s: txt.slice(pos) });
+    });
+    for (const c of chunks) {
+      if (!c.parts.length && !c.ch) continue;
+      const cd = c.ch ? lab(c.ch) : '<b class="cd"></b>';
+      inner += `<span class="ck">${cd}<span class="lx">${c.parts.map(p => `<span class="wd${b.words[p.k].c < 0.45 && L.source !== 'user' ? ' low' : ''}" data-li="${bi}" data-wi="${p.k}">${esc(p.s)}</span>`).join('')}</span></span>`;
+    }
+    if (b.tail.length) inner += `<span class="lead" style="margin-left:10px">${b.tail.map(c => `<span class="ck">${lab(c)}<span class="lx"> </span></span>`).join('')}</span>`;
+    html += `<div class="lline" data-blk="${bi}">${inner}</div>`;
+  });
+  box.innerHTML = html;
+  SH.forEach((b, bi) => { b.el = box.querySelector(`[data-blk="${bi}"]`); if (b.type === 'line') b.wEls = b.words.map((_, k) => [...box.querySelectorAll(`.wd[data-li="${bi}"][data-wi="${k}"]`)]); });
+}
+function chordProText() {
+  const lab = ch => `[${shapeName(ch)}]`, out = [`{title: ${S.title}}`];
+  if (level === 'easy' && capo) out.push(`{capo: ${capo}}`);
+  for (const b of SH) {
+    if (b.type === 'instr') { out.push('', `{comment: ${b.label}}`, '| ' + b.bars.map(x => barLabel(D.bars[x])).join(' | ') + ' |'); continue; }
+    if (b.label) out.push('', `{comment: ${b.label}}`);
+    let line = b.lead.map(lab).join(' ') + (b.lead.length ? ' ' : '');
+    b.words.forEach((w, k) => { let pos = 0, s = ''; for (const m of b.marks[k]) { s += w.w.slice(pos, m.i) + lab(m.ch); pos = m.i; } s += w.w.slice(pos); line += s + (k < b.words.length - 1 ? ' ' : ''); });
+    if (b.tail.length) line += ' ' + b.tail.map(lab).join(' ');
+    out.push(line);
+  }
+  return out.join('\n');
+}
+function syncSheet(t) {
+  if (!SH || !SH.length) return;
+  let bi = -1; for (let k = 0; k < SH.length; k++) if (SH[k].t0 <= t) bi = k;
+  let wi = -1, bar = -1; const b = SH[bi];
+  if (b && b.type === 'line') { for (let k = 0; k < b.words.length; k++) if (b.words[k].t0 <= t + 0.05) wi = k; if (wi >= 0 && t > b.words[wi].t1 + 0.6 && (!b.words[wi + 1])) wi = -1; }
+  if (b && b.type === 'instr') bar = curBar;
+  if (bi !== shCur.blk) {
+    SH.forEach((x, k) => { if (!x.el) return; x.el.classList.toggle('cur', k === bi); x.el.classList.toggle('past', k < bi && x.type === 'line'); });
+    if (b && b.el && $('followIn').checked && Date.now() - lastUserScroll > 4000) { const box = $('sheet'); progScrollAt = Date.now(); box.scrollTop = b.el.offsetTop - box.offsetTop - box.clientHeight * 0.3; }
+  }
+  if (bi !== shCur.blk || wi !== shCur.wi) {
+    const old = SH[shCur.blk]; if (old && old.wEls && shCur.wi >= 0) old.wEls[shCur.wi].forEach(e => e.classList.remove('on'));
+    if (b && b.wEls && wi >= 0) b.wEls[wi].forEach(e => e.classList.add('on'));
+  }
+  if (bar !== shCur.bar) { document.querySelectorAll('.ibar.on').forEach(e => e.classList.remove('on')); if (bar >= 0) { const e = document.querySelector(`.ibar[data-bar="${bar}"]`); if (e) e.classList.add('on'); } }
+  shCur = { blk: bi, wi, bar };
+}
+async function pollLyrics() {
+  clearTimeout(lyrPoll); if (!S) return;
+  const busy = S.lyr_status === 'queued' || S.lyr_status === 'working';
+  if (!busy) return;
+  lyrPoll = setTimeout(async () => {
+    if (!S) return; let d; try { d = await api('/api/songs/' + S.id); } catch (e) { return pollLyrics(); }
+    if (!S || d.id !== S.id) return;
+    const was = S.lyr_status; Object.assign(S, { lyr_status: d.lyr_status, lyr_msg: d.lyr_msg, lyr_pct: d.lyr_pct, lyrics: d.lyrics });
+    renderSheet(); update();
+    if (was !== d.lyr_status && d.lyr_status === 'done' && !$('lyrEdit').hidden) $('lyrText').value = (S.lyrics && S.lyrics.text) || '';
+    pollLyrics();
+  }, 1500);
+}
+async function lyrRequest(body) {
+  try { const m = await api(`/api/songs/${S.id}/lyrics`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); Object.assign(S, { lyr_status: m.lyr_status, lyr_msg: m.lyr_msg, lyr_pct: m.lyr_pct }); renderSheet(); pollLyrics(); }
+  catch (e) { $('lyrStat').hidden = false; $('lyrStat').innerHTML = `<span class="fine" style="color:var(--bad)">${esc(e.message)}</span>`; }
+}
+
+// ---------------- Arama ----------------
+let pendingOpen = null, findSeq = 0;
+function rcard(r, i) {
+  const yt = r.kind === 'youtube';
+  const img = r.art ? `<img src="${esc(r.art)}" alt="" loading="lazy">` : '<span class="noimg"></span>';
+  const name = yt ? esc(r.title || 'YouTube videosu') : esc(r.track);
+  const sub = yt ? `${esc(r.channel || '')}${r.duration ? ' · ' + fmt(r.duration) : ''}` : `${esc(r.artist)}${r.album ? ' · ' + esc(r.album) : ''} · ${fmt(r.duration)}`;
+  const btn = r.have ? `<a class="btn" href="#s/${esc(r.have)}">Aç</a>` : `<button class="btn primary" type="button" data-pick="${i}">${yt ? 'Bunu kullan' : 'Akorlarını çıkar'}</button>`;
+  return `<div class="rcard${yt ? ' yt' : ''}">${img}<div><b>${name}</b><span class="meta">${sub}</span></div>${btn}</div>`;
+}
+let findResults = [];
+async function runFind(q, yt) {
+  const box = $('findRes'), my = ++findSeq;
+  box.innerHTML = `<p class="fine">${yt ? "YouTube'da aranıyor" : 'Aranıyor'}…</p>`;
+  let d; try { d = await api('/api/find?' + new URLSearchParams(yt ? { q, yt: '1' } : { q })); } catch (e) { if (my === findSeq) box.innerHTML = `<p class="fine" style="color:var(--bad)">${esc(e.message)}</p>`; return; }
+  if (my !== findSeq) return;
+  findResults = d.results || [];
+  let html = findResults.length ? findResults.map(rcard).join('') : '<p class="fine">Sonuç yok.</p>';
+  html += `<div class="rtools"><span class="fine">${d.mode === 'catalog' ? 'Sonuçlar Apple Music kataloğundan. Seçince sesi YouTube\'da süresine bakarak bulup indirir.' : d.mode === 'youtube' ? 'YouTube sonuçları. Cover ya da canlı kayıt seçmemeye dikkat et.' : ''}</span>${d.mode !== 'youtube' && !/^https?:/.test(q) ? `<button class="btn small" type="button" id="ytMore">Aradığın yok mu? YouTube'da ara</button>` : ''}${d.mode === 'youtube' ? `<button class="btn small" type="button" id="catBack">Kataloğa dön</button>` : ''}</div>`;
+  box.innerHTML = html;
+}
+$('findForm').addEventListener('submit', e => { e.preventDefault(); const q = $('findIn').value.trim(); if (q) runFind(q, false); });
+$('findRes').addEventListener('click', async e => {
+  if (e.target.id === 'ytMore') return runFind($('findIn').value.trim(), true);
+  if (e.target.id === 'catBack') return runFind($('findIn').value.trim(), false);
+  const b = e.target.closest('[data-pick]'); if (!b) return;
+  const r = findResults[+b.dataset.pick]; b.disabled = true; b.textContent = 'Ekleniyor…';
+  const body = r.kind === 'youtube' ? { yt_id: r.yt_id, title: r.title, channel: r.channel, art: r.art } : { artist: r.artist, track: r.track, duration: r.duration, art: r.art };
+  try {
+    const m = await api('/api/songs/fetch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (m.status === 'done') { location.hash = '#s/' + m.id; return; }
+    pendingOpen = m.id; b.textContent = 'Hazırlanıyor…'; refreshSongs();
+  } catch (err) { b.disabled = false; b.textContent = 'Tekrar dene'; $('libNote').textContent = err.message; }
+});
+
+// ---------------- Kutuphane ----------------
+// ---------------- Sextant (iPhone uygulaması) ----------------
+// Uygulama içinde bu sayfa telefonun kendi küçük sunucusundan açılır; window.SEXTANT sayfa yüklenmeden tanımlanır.
+const APP = !!window.SEXTANT, APP_DL = new Set();
+function native(cmd, extra) { try { window.webkit.messageHandlers.sextant.postMessage(Object.assign({ cmd }, extra || {})); return true; } catch (e) { return false; } }
+async function appState() {
+  let st; try { st = await api('/api/app/state'); } catch (e) { return; }
+  const el = $('appConn'); el.hidden = false;
+  el.innerHTML = st.paired ? (st.online ? `Bilgisayara bağlı · <button type="button" class="linkbtn" id="srvOpen">değiştir</button>` : `Bilgisayara ulaşılamıyor; telefondaki şarkılar çalışır · <button type="button" class="linkbtn" id="srvOpen">bağlantı</button>`)
+    : `Bilgisayar bağlı değil · <button type="button" class="linkbtn" id="srvOpen">bağla</button>`;
+  document.querySelectorAll('.find, .drop').forEach(e => e.classList.toggle('dim', !st.online));
+}
+async function appDownload(id) {
+  APP_DL.add(id); renderSongs();
+  try { await api(`/api/app/download/${id}`, { method: 'POST' }); } catch (e) { $('libNote').textContent = 'İndirilemedi: ' + e.message; }
+  APP_DL.delete(id); refreshSongs();
+}
+if (APP) {
+  document.title = 'Sextant'; $('appName').textContent = 'Sextant'; $('pairBtn').hidden = true;
+  $('status').textContent = 'Bir ölçüye dokununca oradan çalar. "Beni dinle" mikrofonla seni dinler; şarkıyı kulaklıktan çal.';
+  document.documentElement.classList.add('app');
+  document.addEventListener('click', async e => {
+    const t = e.target;
+    if (t.id === 'srvOpen') { const st = await api('/api/app/state').catch(() => ({})); $('srvUrl').value = st.server || ''; $('srvTok').value = ''; $('srvMsg').textContent = ''; $('srvDlg').showModal(); }
+    if (t.dataset && t.dataset.dl) appDownload(t.dataset.dl);
+    if (t.dataset && t.dataset.undl) { await api(`/api/app/download/${t.dataset.undl}`, { method: 'DELETE' }).catch(() => {}); refreshSongs(); }
+  });
+  $('srvSave').addEventListener('click', async () => {
+    $('srvMsg').textContent = 'Deneniyor…';
+    try { await api('/api/app/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: $('srvUrl').value.trim(), token: $('srvTok').value.trim() }) }); $('srvDlg').close(); refreshSongs(); }
+    catch (err) { $('srvMsg').textContent = err.message; }
+  });
+  window.__sextantPaired = () => refreshSongs();  // QR ile eşlenince uygulama çağırır
+}
+$('pairBtn').addEventListener('click', async () => {
+  $('pairBody').textContent = 'Hazırlanıyor…'; $('pairDlg').showModal();
+  let p; try { p = await api('/api/pair'); } catch (e) { $('pairBody').textContent = e.message; return; }
+  if (!p.listening) { $('pairBody').innerHTML = 'Kılavuz yalnızca bu bilgisayardan erişime açık (KILAVUZ_HOST=127.0.0.1). Telefon için bu ayarı kaldırıp yeniden başlat.'; return; }
+  if (!p.urls.length) { $('pairBody').textContent = 'Bu bilgisayarın ev ağı adresi bulunamadı. Wi-Fi ya da kabloyla ağa bağlı mı?'; return; }
+  $('pairBody').innerHTML = `<ol><li>iPhone'da Sextant yüklü olsun (TestFlight).</li><li>Telefon bu bilgisayarla <b>aynı Wi-Fi</b>'da olsun.</li><li>iPhone kamerasıyla bu kodu okut, çıkan bağlantıya dokun.</li></ol>
+    ${p.qr_svg ? `<div class="qr">${p.qr_svg}</div>` : ''}
+    <p>Elle girmek için: adres <code>${esc(p.urls[0])}</code>, anahtar <code>${esc(p.token)}</code></p>
+    <p class="fine">Windows güvenlik duvarı Python için izin sorarsa "Özel ağlar"a izin ver. Anahtar yalnızca bu ekranda görünür; başkasıyla paylaşma.</p>`;
+});
+
+function renderSongs() {
+  $('songList').innerHTML = songs.map(s => {
+    const busy = s.status === 'queued' || s.status === 'working';
+    const lyr = s.lyr_status === 'queued' || s.lyr_status === 'working' ? ` · sözler hazırlanıyor %${s.lyr_pct || 0}` : s.lyr_status === 'done' ? ' · sözler hazır' : '';
+    const meta = s.status === 'done' ? `<span class="meta"><span class="mono">${Math.round(s.bpm || 0)} BPM · ${fmt(s.duration)}</span>${lyr}</span>`
+      : s.status === 'error' ? `<span class="meta err">Olmadı: ${esc(s.message || '')}</span>`
+      : `<span class="meta">${esc(s.message || 'Sırada')} · %${s.pct || 0}</span><div class="pbar"><div style="width:${s.pct || 0}%"></div></div>`;
+    const inner = `<b>${esc(s.title)}</b>${meta}`;
+    const img = s.art ? `<img class="thumb" src="${esc(s.art)}" alt="" loading="lazy">` : '';
+    // uygulamada: telefona indirilen şarkılar bilgisayar kapalıyken de açılır
+    const off = APP && s.status === 'done' ? (s.offline ? `<button class="btn small" type="button" data-undl="${s.id}" title="Telefondan kaldır (bilgisayarda kalır)">✓ Telefonda</button>` : s.remote === false ? '' : `<button class="btn small" type="button" data-dl="${s.id}"${APP_DL.has(s.id) ? ' disabled' : ''}>${APP_DL.has(s.id) ? 'İniyor…' : '⬇ İndir'}</button>`) : '';
+    const del = APP && s.remote === false ? '' : `<button class="btn small" type="button" data-del="${s.id}"${busy && s.status === 'working' ? ' disabled' : ''}>Sil</button>`;
+    return `<div class="card"><div class="cmain">${img}${s.status === 'done' ? `<a href="#s/${s.id}">${inner}</a>` : `<a>${inner}</a>`}</div><div class="cbtns">${off}${del}</div></div>`;
+  }).join('') || '<p class="fine">Henüz şarkı yok. İlk şarkını ekle.</p>';
+}
+async function refreshSongs() {
+  if (APP) appState();
+  try { songs = await api('/api/songs'); } catch (e) { $('libNote').textContent = APP ? 'Şarkılar okunamadı.' : 'Sunucuya ulaşılamıyor. Kılavuz penceresi açık mı?'; return; }
+  $('libNote').textContent = ''; renderSongs();
+  if (pendingOpen) { const p = songs.find(s => s.id === pendingOpen); if (p && p.status === 'done' && !$('libView').hidden) { pendingOpen = null; location.hash = '#s/' + p.id; return; } if (p && p.status === 'error') { pendingOpen = null; $('libNote').textContent = 'Eklenemedi: ' + (p.message || '') ; } }
+  const busy = songs.some(s => s.status === 'queued' || s.status === 'working' || s.lyr_status === 'queued' || s.lyr_status === 'working');
+  clearTimeout(pollTimer); if (busy && !$('libView').hidden) pollTimer = setTimeout(refreshSongs, 1500);
+}
+async function upload(files) {
+  for (const f of files) { $('libNote').textContent = `Yükleniyor: ${f.name}`;
+    try { await api('/api/songs?name=' + encodeURIComponent(f.name), { method: 'POST', body: f }); } catch (e) { $('libNote').textContent = `${f.name} eklenemedi: ${e.message}`; return; } }
+  refreshSongs();
+}
+async function openSong(id) {
+  let data; try { data = await api('/api/songs/' + id); } catch (e) { location.hash = ''; return; }
+  if (!data.analysis) { location.hash = ''; return; }
+  if (L.on) listenStop(); pause();
+  S = data; level = 'easy'; loopRow = null; curBar = -1; curWin = -1; lastBeat = -1; lastSeg = -1; srcKind = 'full'; setEditMode(false);
+  derive(); audio.src = `/media/${S.id}/full.mp3`; audio.playbackRate = rate;
+  document.querySelectorAll('#srcSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === 'full' ? 'true' : 'false'));
+  $('editSel').innerHTML = '<option value="N">– (sessiz)</option>' + NOTES.map((n, i) => `<option value="${n}">${MAJ[i]}</option><option value="${n}m">${MIN[i]}</option>`).join('');
+  $('lyrEdit').hidden = true; $('lyrEditBtn').setAttribute('aria-pressed', 'false'); $('lyrQuery').value = S.title;
+  $('libView').hidden = true; $('songView').hidden = false; renderAll(); window.scrollTo(0, 0); pollLyrics();
+  if (S.status === 'queued' || S.status === 'working') pollReanalyze(S.id);
+}
+function route() {
+  const m = location.hash.match(/^#s\/([a-z0-9-]+)$/);
+  if (m) openSong(m[1]);
+  else { clearTimeout(lyrPoll); if (L.on) listenStop(); if (S) pause(); S = null; D = null; document.title = APP ? 'Sextant' : 'Kılavuz'; $('songView').hidden = true; $('libView').hidden = false; refreshSongs(); }
+}
+
+// ---------------- Olaylar ----------------
+$('fileIn').addEventListener('change', e => { upload([...e.target.files]); e.target.value = ''; });
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => upload([...e.dataTransfer.files]));
+$('songList').addEventListener('click', async e => { const b = e.target.closest('[data-del]'); if (!b) return; const s = songs.find(x => x.id === b.dataset.del); if (!confirm(`"${s ? s.title : ''}" silinsin mi? Analizi de silinir.`)) return; try { await api('/api/songs/' + b.dataset.del, { method: 'DELETE' }); } catch (err) { $('libNote').textContent = err.message; } refreshSongs(); });
+$('chips').addEventListener('click', async e => {
+  if (e.target.id !== 'reBtn') return;
+  try { const m = await api(`/api/songs/${S.id}/reanalyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); S.status = m.status; S.message = m.message; S.pct = m.pct; renderHeader(); pollReanalyze(S.id); }
+  catch (err) { $('status').textContent = err.message; }
+});
+$('titleBtn').addEventListener('click', async () => { const t = prompt('Şarkının adı', S.title); if (!t || !t.trim()) return; try { const m = await api(`/api/songs/${S.id}/meta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: t }) }); S.title = m.title; renderHeader(); } catch (e) { $('status').textContent = e.message; } });
+$('playBtn').addEventListener('click', () => playing ? pause() : play());
+audio.addEventListener('ended', () => { playing = false; setPlayBtn(); });
+$('srcSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b && b.dataset.v !== srcKind) setSource(b.dataset.v); });
+$('speedSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rate = parseFloat(b.dataset.v); audio.playbackRate = rate; document.querySelectorAll('#speedSeg button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); });
+$('clickIn').addEventListener('change', e => { clickOn = e.target.checked; ensureCtx(); });
+$('levelSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; level = b.dataset.l; renderLoop(); renderShapes(); renderTimeline(); renderSheet(); renderTab(); update(); });
+function setCapo(c) { capo = Math.max(0, Math.min(9, c)); store('kilavuz.capo.' + S.id, String(capo)); renderLoop(); renderShapes(); renderTimeline(); renderSheet(); renderTab(); update(); }
+$('capoDown').addEventListener('click', () => setCapo(capo - 1));
+$('capoUp').addEventListener('click', () => setCapo(capo + 1));
+$('mirrorIn').addEventListener('change', e => { mirror = e.target.checked; renderShapes(); });
+$('extIn').checked = showExt;
+$('extIn').addEventListener('change', e => { showExt = e.target.checked; store('kilavuz_ext', showExt ? '1' : '0'); if (S) { const t = now(); rederive(); seek(t); } });
+$('progress').addEventListener('click', e => { const r = e.currentTarget.getBoundingClientRect(); seek((e.clientX - r.left) / r.width * D.dur); });
+$('listenBtn').addEventListener('click', () => L.on ? listenStop() : listenStart());
+$('micSel').addEventListener('change', async () => { if (L.on) { listenStop(); await listenStart(); } });
+$('monIn').addEventListener('change', e => { if (L.native) native('monitor', { on: e.target.checked }); });
+$('monIn').addEventListener('change', e => { if (L.mon) L.mon.gain.value = e.target.checked ? 1 : 0; });
+$('waitIn').addEventListener('change', e => { if (!e.target.checked && L.waiting !== null) { L.waiting = null; $('waitMsg').hidden = true; if (playing) audio.play().catch(() => {}); } if (e.target.checked && !L.on) listenStart(); });
+$('editBtn').addEventListener('click', () => setEditMode(!editMode));
+$('timeline').addEventListener('click', e => {
+  const b = e.target.closest('.bar');
+  if (b) { const bi = +b.dataset.bar;
+    if (editMode) { editBar = bi; document.querySelectorAll('.bar.sel').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); const bar = D.bars[bi]; $('editInfo').textContent = `Ölçü ${bi + 1 - D.off} (${fmt(bar.t)}), şu an ${bar.segs.map(s => disp(s.ch)).join(' · ')}${bar.low ? ' (emin değilim)' : ''}. Yeni akor:`; $('editSel').value = bar.segs[0].ch; const ab = $('editAlt'); ab.hidden = !bar.alt; if (bar.alt) { ab.textContent = 'Öneri: ' + disp(bar.alt); ab.dataset.ch = bar.alt; } }
+    seek(D.bars[bi].t); return; }
+  const l = e.target.closest('.loopbtn'); if (l) { const r = +l.dataset.loop; loopRow = loopRow === r ? null : r; markLoop(); if (loopRow !== null) seek(D.bars[D.rows[r][0]].t); }
+});
+$('editApply').addEventListener('click', async () => { if (editBar === null) { $('editInfo').textContent = 'Önce bir ölçüye tıkla.'; return; } const b = D.bars[editBar], v = $('editSel').value; for (let k = 0; k < b.n; k++) S.analysis.chords[b.b0 + k] = v; try { await saveEdits(); } catch (e) { $('status').textContent = 'Kaydedilemedi: ' + e.message; } const keep = editBar; rederive(); setEditMode(true); $('editInfo').textContent = `Ölçü ${keep + 1 - D.off} güncellendi. Başka bir ölçüye tıkla.`; });
+$('editAlt').addEventListener('click', () => { const v = $('editAlt').dataset.ch; if (!v) return; $('editSel').value = v; $('editApply').click(); });
+$('phaseBtn').addEventListener('click', async () => { S.analysis.phase = (S.analysis.phase + 1) % (S.analysis.meter || 4); try { await saveEdits(); } catch (e) { $('status').textContent = 'Kaydedilemedi: ' + e.message; } rederive(); setEditMode(true); });
+$('resetBtn').addEventListener('click', async () => { if (!confirm('Elle yaptığın tüm düzeltmeler silinsin mi?')) return; try { await api(`/api/songs/${S.id}/edits`, { method: 'DELETE' }); } catch (e) { $('status').textContent = e.message; return; } const t = now(); await openSong(S.id); seek(t); });
+document.addEventListener('keydown', e => {
+  if (!D || e.target.matches('input, select, textarea')) return;
+  if (e.code === 'Space') { e.preventDefault(); playing ? pause() : play(); }
+  if (e.code === 'ArrowRight') seek(D.bars[Math.min(D.bars.length - 1, curBar + 1)].t);
+  if (e.code === 'ArrowLeft') seek(D.bars[Math.max(0, curBar - 1)].t);
+});
+$('sheet').addEventListener('click', e => {
+  const w = e.target.closest('.wd'); if (w) { const b = SH[+w.dataset.li]; seek(b.words[+w.dataset.wi].t0 - 0.35); return; }
+  const ib = e.target.closest('.ibar'); if (ib) { seek(D.bars[+ib.dataset.bar].t); return; }
+  const cd = e.target.closest('.lline'); if (cd) { const b = SH[+cd.dataset.blk]; seek(b.words[0].t0 - 1.0); }
+});
+['wheel', 'touchmove', 'keydown'].forEach(ev => $('sheet').addEventListener(ev, () => { lastUserScroll = Date.now(); }, { passive: true }));
+$('sheet').addEventListener('scroll', () => { if (Date.now() - progScrollAt > 800) lastUserScroll = Date.now(); }, { passive: true });
+$('followIn').addEventListener('change', e => { if (e.target.checked) { lastUserScroll = 0; shCur.blk = -1; syncSheet(now()); } });
+$('lyrEditBtn').addEventListener('click', () => { const open = $('lyrEdit').hidden; $('lyrEdit').hidden = !open; $('lyrEditBtn').setAttribute('aria-pressed', open ? 'true' : 'false'); if (open && !$('lyrText').value) $('lyrText').value = (S.lyrics && S.lyrics.text) || ''; });
+$('lyrAlign').addEventListener('click', () => { const t = $('lyrText').value.trim(); if (!t) { $('lyrText').focus(); return; } lyrRequest({ mode: 'text', text: t }); });
+$('lyrSearch').addEventListener('click', () => { const q = $('lyrQuery').value.trim(); if (q) lyrRequest({ mode: 'search', query: q }); });
+$('lyrRelisten').addEventListener('click', () => lyrRequest({ mode: 'auto', relisten: true }));
+$('lyrCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(chordProText()); $('lyrCopy').textContent = 'Kopyalandı'; } catch (e) { $('lyrCopy').textContent = 'Kopyalanamadı'; } setTimeout(() => { $('lyrCopy').textContent = 'Akor kağıdını kopyala'; }, 1800); });
+window.addEventListener('hashchange', route);
+window.__k = { L, get D() { return D; }, get S() { return S; }, get SH() { return SH; }, hear, judge, shapeAt, arpOf, computeSheet, chordChanges, chordProText };
+route(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
