@@ -225,7 +225,25 @@ select { background: var(--bg); border: 1px solid var(--line); border-radius: 8p
   .rcard { grid-template-columns: 44px 1fr; }
   .rcard > :last-child { grid-column: 1 / -1; }
   .card { grid-template-columns: 1fr; }
+  /* Oynatıcı telefonda küçük ve yapışık kalır; ayarlar "Ayarlar" düğmesinin arkasında. Sözler sayfayla birlikte kayar. */
+  .player { position: sticky; padding: 10px 12px; gap: 8px; }
+  .stage { grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+  .now .name { font-size: 2.5rem; }
+  .next .name { font-size: 1.35rem; }
+  .lab { font-size: .7rem; }
+  .beatbox { display: flex; gap: 10px; align-items: center; }
+  .strumline { display: none; }
+  .player #moreBtn { display: inline-flex; }
+  .player:not(.open) .controls > :not(#playBtn):not(#moreBtn),
+  .player:not(.open) .listen > :not(#listenBtn):not(#heard):not(#waitMsg):not(#score),
+  .player:not(.open) #status { display: none; }
+  .controls, .listen { gap: 8px; }
+  .listen { padding-top: 8px; }
+  .player:not(.open) .listen { border-top: 0; padding-top: 0; }
+  .sheet { max-height: none; overflow: visible; padding-bottom: 35vh; }
 }
+#moreBtn { display: none; }
+#syncIn { width: 130px; vertical-align: middle; }
 .brandrow { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .cbtns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); max-width: min(520px, 94vw); padding: 18px; }
@@ -301,6 +319,7 @@ html.app .player { top: env(safe-area-inset-top); }
     <div class="progress" id="progress" title="Tıklayıp atla"><div id="progressFill"></div></div>
     <div class="controls">
       <button class="btn primary" id="playBtn" type="button">▶ Başlat</button>
+      <button class="btn small" id="moreBtn" type="button" aria-expanded="false">⚙ Ayarlar</button>
       <span class="ctl-label">Ses</span>
       <div class="seg" id="srcSeg" role="group" aria-label="Ses kaynağı">
         <button type="button" data-v="full" aria-pressed="true">Tam şarkı</button>
@@ -1010,7 +1029,11 @@ function syncSheet(t) {
   if (b && b.type === 'instr') bar = curBar;
   if (bi !== shCur.blk) {
     SH.forEach((x, k) => { if (!x.el) return; x.el.classList.toggle('cur', k === bi); x.el.classList.toggle('past', k < bi && x.type === 'line'); });
-    if (b && b.el && $('followIn').checked && Date.now() - lastUserScroll > 4000) { const box = $('sheet'); progScrollAt = Date.now(); box.scrollTop = b.el.offsetTop - box.offsetTop - box.clientHeight * 0.3; }
+    if (b && b.el && $('followIn').checked && Date.now() - lastUserScroll > 4000) { const box = $('sheet'); progScrollAt = Date.now();
+      if (getComputedStyle(box).overflowY === 'visible') {  // telefonda sayfanın kendisi kayar; yapışık oynatıcının altına getir
+        const ph = document.querySelector('.player').getBoundingClientRect().height;
+        window.scrollTo({ top: Math.max(0, b.el.getBoundingClientRect().top + window.scrollY - ph - 24), behavior: 'smooth' });
+      } else box.scrollTop = b.el.offsetTop - box.offsetTop - box.clientHeight * 0.3; }
   }
   if (bi !== shCur.blk || wi !== shCur.wi) {
     const old = SH[shCur.blk]; if (old && old.wEls && shCur.wi >= 0) old.wEls[shCur.wi].forEach(e => e.classList.remove('on'));
@@ -1223,6 +1246,8 @@ $('sheet').addEventListener('click', e => {
 });
 ['wheel', 'touchmove', 'keydown'].forEach(ev => $('sheet').addEventListener(ev, () => { lastUserScroll = Date.now(); }, { passive: true }));
 $('sheet').addEventListener('scroll', () => { if (Date.now() - progScrollAt > 800) lastUserScroll = Date.now(); }, { passive: true });
+window.addEventListener('scroll', () => { if (Date.now() - progScrollAt > 800 && getComputedStyle($('sheet')).overflowY === 'visible') lastUserScroll = Date.now(); }, { passive: true });
+$('moreBtn').addEventListener('click', e => { const pl = document.querySelector('.player'), on = !pl.classList.contains('open'); pl.classList.toggle('open', on); e.currentTarget.setAttribute('aria-expanded', on ? 'true' : 'false'); e.currentTarget.textContent = on ? '✕ Kapat' : '⚙ Ayarlar'; });
 $('followIn').addEventListener('change', e => { if (e.target.checked) { lastUserScroll = 0; shCur.blk = -1; syncSheet(now()); } });
 $('lyrEditBtn').addEventListener('click', () => { const open = $('lyrEdit').hidden; $('lyrEdit').hidden = !open; $('lyrEditBtn').setAttribute('aria-pressed', open ? 'true' : 'false'); if (open && !$('lyrText').value) $('lyrText').value = (S.lyrics && S.lyrics.text) || ''; });
 $('lyrAlign').addEventListener('click', () => { const t = $('lyrText').value.trim(); if (!t) { $('lyrText').focus(); return; } lyrRequest({ mode: 'text', text: t }); });
