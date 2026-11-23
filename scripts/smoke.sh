@@ -24,7 +24,9 @@ for i in $(seq 1 40); do
 done
 [ -n "$S" ] || fail "local server did not start"
 echo "local server: $S"
-curl -fsS "$S/" | grep -q "window.SEXTANT\|Sextant\|Kılavuz" || fail "web page not served"
+# (no pipe into grep -q: with pipefail, curl's SIGPIPE would fail the check)
+curl -fsS -o "$OUT/index.html" "$S/" || fail "web page not served"
+grep -q "Sextant" "$OUT/index.html" || fail "web page content unexpected ($(head -c 200 "$OUT/index.html"))"
 sleep 3; xcrun simctl io "$UDID" screenshot "$OUT/1-library-unpaired.png" >/dev/null
 
 curl -fsS "$S/api/app/state" | check "d['paired'] is False" || fail "should start unpaired"
