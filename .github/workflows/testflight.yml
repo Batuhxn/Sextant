@@ -92,11 +92,40 @@ jobs:
         env:
           IOS_PROFILE_B64: ${{ secrets.IOS_PROFILE_B64 }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           set -euo pipefail
           umask 077
           profile="$RUNNER_TEMP/sextant-profile.mobileprovision"
           decoded="$RUNNER_TEMP/sextant-profile.plist"
+          if [ -z "$IOS_PROFILE_B64" ]; then
+            # No profile secret: fetch the active profile by name from the
+            # App Store Connect API with the same key used for upload.
+            [ -n "$ASC_PRIVATE_KEY_B64" ] && [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] \
+              || { echo "::error::set IOS_PROFILE_B64, or the ASC_* secrets so the profile can be fetched"; exit 1; }
+            python3 -m venv "$RUNNER_TEMP/sextant-venv"
+            "$RUNNER_TEMP/sextant-venv/bin/pip" install -q 'pyjwt[crypto]==2.10.1'
+            IOS_PROFILE_B64="$("$RUNNER_TEMP/sextant-venv/bin/python" - <<'PY'
+          import base64, json, os, time, urllib.parse, urllib.request, jwt
+          key = base64.b64decode(os.environ["ASC_PRIVATE_KEY_B64"]).decode()
+          now = int(time.time())
+          token = jwt.encode({"iss": os.environ["ASC_ISSUER_ID"], "iat": now, "exp": now + 600,
+                              "aud": "appstoreconnect-v1"}, key, algorithm="ES256",
+                             headers={"kid": os.environ["ASC_KEY_ID"], "typ": "JWT"})
+          q = urllib.parse.urlencode({"filter[name]": os.environ["EXPECTED_PROFILE_NAME"],
+                                      "filter[profileState]": "ACTIVE", "limit": "5"})
+          req = urllib.request.Request("https://api.appstoreconnect.apple.com/v1/profiles?" + q,
+                                       headers={"Authorization": "Bearer " + token})
+          data = json.load(urllib.request.urlopen(req, timeout=30))["data"]
+          if len(data) != 1:
+              raise SystemExit(f"expected exactly one active profile, found {len(data)}")
+          print(data[0]["attributes"]["profileContent"])
+          PY
+            )"
+            echo "Provisioning profile fetched from App Store Connect API"
+          fi
           printf '%s' "$IOS_PROFILE_B64" | base64 --decode > "$profile"
           security cms -D -i "$profile" > "$decoded" 2>/dev/null
           pb() { /usr/libexec/PlistBuddy -c "Print :$1" "$decoded" 2>/dev/null; }

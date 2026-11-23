@@ -44,12 +44,12 @@ One-time setup in the Apple Developer account:
 1. **Identifiers** → register App ID `com.batuhxn.sextant` (no extra capabilities).
 2. **Profiles** → new *App Store Connect* distribution profile for that App ID, using the existing
    Apple Distribution certificate, named exactly **Sextant App Store Connect**.
-3. **App Store Connect** → My Apps → **+ New App**: iOS, name *Sextant* (or another free name),
+3. **App Store Connect** → My Apps → **+ New App**: iOS, name *Sextant by Batuhxn* (*Sextant* alone is taken),
    bundle ID `com.batuhxn.sextant`, SKU `sextant`.
 4. Repository **Settings → Secrets and variables → Actions**, the same secrets as the Watchlink
    pipeline: `APPLE_TEAM_ID`, `IOS_DIST_P12_B64`, `IOS_DIST_P12_PASSWORD`, `ASC_KEY_ID`,
-   `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY_B64`, and the new profile as `IOS_PROFILE_B64`
-   (`base64 -w0 profile.mobileprovision`).
+   `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY_B64`. `IOS_PROFILE_B64` is optional: without it the workflow
+   fetches the active *Sextant App Store Connect* profile through the App Store Connect API.
 
 Then run **Actions → Sextant signed IPA (TestFlight) → Run workflow** with *upload* checked. After
 Apple finishes processing (usually 10–30 minutes) the build appears in TestFlight on the phone.
