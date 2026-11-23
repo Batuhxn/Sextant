@@ -20,14 +20,21 @@ final class ServerConfig {
         UserDefaults.standard.removeObject(forKey: urlKey)
         let q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service]
         SecItemDelete(q as CFDictionary)
+        try? FileManager.default.removeItem(at: fallbackFile)
+    }
+
+    /// Fallback when the Keychain is unavailable (unsigned simulator builds in CI): a file the app alone
+    /// can read, encrypted by iOS until first unlock.
+    private var fallbackFile: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("pairing.key")
     }
 
     private func readToken() -> String? {
         let q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
                                 kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
         var out: CFTypeRef?
-        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let d = out as? Data else { return nil }
-        return String(data: d, encoding: .utf8)
+        if SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let d = out as? Data { return String(data: d, encoding: .utf8) }
+        return (try? Data(contentsOf: fallbackFile)).flatMap { String(data: $0, encoding: .utf8) }
     }
 
     private func writeToken(_ t: String) {
@@ -36,6 +43,11 @@ final class ServerConfig {
         var add = base
         add[kSecValueData as String] = Data(t.utf8)
         add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        SecItemAdd(add as CFDictionary, nil)
+        if SecItemAdd(add as CFDictionary, nil) == errSecSuccess {
+            try? FileManager.default.removeItem(at: fallbackFile)
+            return
+        }
+        try? FileManager.default.createDirectory(at: fallbackFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? Data(t.utf8).write(to: fallbackFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
 }

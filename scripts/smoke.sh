@@ -37,7 +37,7 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "$S/api/find?q=x"); [ "$code" = 50
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"url":"127.0.0.1","token":"wrong"}' "$S/api/app/pair")
 [ "$code" = 400 ] || fail "a wrong key must be refused, got $code"
 curl -fsS -X POST -H 'Content-Type: application/json' -d '{"url":"127.0.0.1:8765","token":"testkey"}' "$S/api/app/pair" | check "d['ok']" || fail "pairing"
-curl -fsS "$S/api/app/state" | check "d['paired'] and d['online'] and d['server']=='http://127.0.0.1:8765'" || fail "pairing state"
+curl -fsS "$S/api/app/state" | check "d['paired'] and d['online'] and d['server']=='http://127.0.0.1:8765'" || fail "pairing state: $(curl -sS "$S/api/app/state")"
 echo "paired: OK"
 curl -fsS "$S/api/songs" | check "d[0]['id']=='test-song' and d[0]['offline'] is False" || fail "remote song list"
 curl -fsS "$S/api/find?q=x" | check "d['mode']=='catalog'" || fail "proxy to the computer"
