@@ -202,6 +202,12 @@ select { background: var(--bg); border: 1px solid var(--line); border-radius: 8p
 .lyredit textarea { width: 100%; min-height: 220px; resize: vertical; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: 1rem/1.5 var(--font-body); }
 .lyredit input[type=text] { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; min-width: 240px; }
 .followtag { font-size: .85rem; }
+.bgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 6px; width: 100%; }
+.bcell { border-left: 2px solid var(--line); padding: 2px 6px 4px; min-width: 0; cursor: pointer; border-radius: 0 6px 6px 0; }
+.bcell .cd { display: block; }
+.bcell .lx { display: block; font-size: 1.1rem; line-height: 1.4; overflow-wrap: anywhere; }
+.bcell.same .cd { opacity: .45; }
+.bcell.on { background: color-mix(in srgb, var(--accent) 14%, transparent); border-left-color: var(--accent); }
 
 @media (max-width: 820px) {
   .stage { grid-template-columns: 1fr 1fr; }
@@ -241,6 +247,8 @@ select { background: var(--bg); border: 1px solid var(--line); border-radius: 8p
   .listen { padding-top: 8px; }
   .player:not(.open) .listen { border-top: 0; padding-top: 0; }
   .sheet { max-height: none; overflow: visible; padding-bottom: 35vh; }
+  .bcell { padding: 2px 4px 4px; }
+  .bcell .lx { font-size: 1rem; }
 }
 #moreBtn { display: none; }
 #syncIn { width: 130px; vertical-align: middle; }
@@ -356,6 +364,7 @@ html.app .player { top: env(safe-area-inset-top); }
       <h2 id="lyrH">Sözler ve akorlar</h2>
       <div class="controls">
         <span class="fine" id="lyrSrc"></span>
+        <label class="toggle followtag" for="barViewIn" title="Her ölçü eşit genişlikte: akorun ne zaman değiştiği ve ne kadar sürdüğü net görünür"><input type="checkbox" id="barViewIn"> Ölçü ölçü</label>
         <label class="toggle followtag" for="followIn"><input type="checkbox" id="followIn" checked> Takip et</label>
         <button class="btn small" id="lyrCopy" type="button">Akor kağıdını kopyala</button>
         <button class="btn small" id="lyrEditBtn" type="button" aria-pressed="false">Sözleri düzenle</button>
@@ -909,6 +918,7 @@ function setEditMode(on) { editMode = on; editBar = null; $('editAlt').hidden = 
 
 // ---------------- Sozler ve akorlar ----------------
 const VOW = /[aeıioöuüâîûAEIİOÖUÜ]/;
+let barView = (store('kilavuz_barview') || '1') === '1';
 let SH = null, lyrPoll = null, lastUserScroll = 0, progScrollAt = 0, shCur = { li: -1, wi: -1, blk: -1, bar: -1 };
 function chordChanges() {
   const out = [];
@@ -989,6 +999,15 @@ function renderSheet() {
   SH.forEach((b, bi) => {
     if (b.type === 'instr') { html += `<div class="instr" data-blk="${bi}"><span class="llabel">${b.label}</span>${b.bars.map(x => `<button type="button" class="ibar" data-bar="${x}" style="color:${D.color[D.bars[x].segs[0].ch] || 'var(--muted)'}">${esc(barLabel(D.bars[x]))}</button>`).join('')}</div>`; return; }
     if (b.label) html += `<div class="llabel">${esc(b.label)}</div>`;
+    if (barView) {  // ölçü ölçü: her ölçü bir hücre; akor üstte, o ölçüde başlayan kelimeler altında
+      const wb = b.words.map(w => D.beat2bar[Math.max(0, beatAt(w.t0 + 0.05))]);
+      const x0 = wb[0], x1 = wb[wb.length - 1]; let cells = '', prevLab = null;
+      for (let x = x0; x <= x1; x++) { const bar = D.bars[x]; if (!bar) continue; const lb = barLabel(bar);
+        const ws = b.words.map((w, k) => wb[k] === x ? `<span class="wd${w.c < 0.45 && L.source !== 'user' ? ' low' : ''}" data-li="${bi}" data-wi="${k}">${esc(w.w)} </span>` : '').join('');
+        const col = x === x0 ? ` style="grid-column-start:${(((x - D.off) % 4) + 4) % 4 + 1}"` : '';  // 4 ölçülük cümleye hizala
+        cells += `<div class="bcell${lb === prevLab ? ' same' : ''}" data-bar="${x}"${col}><b class="cd" style="color:${D.color[bar.segs[0].ch] || 'var(--muted)'}">${esc(lb)}</b><span class="lx">${ws || '&nbsp;'}</span></div>`; prevLab = lb; }
+      html += `<div class="lline" data-blk="${bi}"><div class="bgrid">${cells}</div></div>`; return;
+    }
     let inner = b.lead.length ? `<span class="lead">${b.lead.map(c => `<span class="ck">${lab(c)}<span class="lx"> </span></span>`).join('')}</span>` : '';
     // chunk'lar: akor isaretlerinden bolunmus metin parcalari
     let cur = { ch: null, parts: [] }; const chunks = [cur];
@@ -1026,7 +1045,7 @@ function syncSheet(t) {
   let bi = -1; for (let k = 0; k < SH.length; k++) if (SH[k].t0 <= t) bi = k;
   let wi = -1, bar = -1; const b = SH[bi];
   if (b && b.type === 'line') { for (let k = 0; k < b.words.length; k++) if (b.words[k].t0 <= t + 0.05) wi = k; if (wi >= 0 && t > b.words[wi].t1 + 0.6 && (!b.words[wi + 1])) wi = -1; }
-  if (b && b.type === 'instr') bar = curBar;
+  if (b && (b.type === 'instr' || barView)) bar = curBar;
   if (bi !== shCur.blk) {
     SH.forEach((x, k) => { if (!x.el) return; x.el.classList.toggle('cur', k === bi); x.el.classList.toggle('past', k < bi && x.type === 'line'); });
     if (b && b.el && $('followIn').checked && Date.now() - lastUserScroll > 4000) { const box = $('sheet'); progScrollAt = Date.now();
@@ -1039,7 +1058,7 @@ function syncSheet(t) {
     const old = SH[shCur.blk]; if (old && old.wEls && shCur.wi >= 0) old.wEls[shCur.wi].forEach(e => e.classList.remove('on'));
     if (b && b.wEls && wi >= 0) b.wEls[wi].forEach(e => e.classList.add('on'));
   }
-  if (bar !== shCur.bar) { document.querySelectorAll('.ibar.on').forEach(e => e.classList.remove('on')); if (bar >= 0) { const e = document.querySelector(`.ibar[data-bar="${bar}"]`); if (e) e.classList.add('on'); } }
+  if (bar !== shCur.bar) { document.querySelectorAll('.ibar.on, .bcell.on').forEach(e => e.classList.remove('on')); if (bar >= 0) document.querySelectorAll(`.ibar[data-bar="${bar}"], .bcell[data-bar="${bar}"]`).forEach(e => e.classList.add('on')); }
   shCur = { blk: bi, wi, bar };
 }
 async function pollLyrics() {
@@ -1241,13 +1260,15 @@ document.addEventListener('keydown', e => {
 });
 $('sheet').addEventListener('click', e => {
   const w = e.target.closest('.wd'); if (w) { const b = SH[+w.dataset.li]; seek(b.words[+w.dataset.wi].t0 - 0.35); return; }
-  const ib = e.target.closest('.ibar'); if (ib) { seek(D.bars[+ib.dataset.bar].t); return; }
+  const ib = e.target.closest('.ibar') || (!e.target.closest('.wd') && e.target.closest('.bcell')); if (ib) { seek(D.bars[+ib.dataset.bar].t); return; }
   const cd = e.target.closest('.lline'); if (cd) { const b = SH[+cd.dataset.blk]; seek(b.words[0].t0 - 1.0); }
 });
 ['wheel', 'touchmove', 'keydown'].forEach(ev => $('sheet').addEventListener(ev, () => { lastUserScroll = Date.now(); }, { passive: true }));
 $('sheet').addEventListener('scroll', () => { if (Date.now() - progScrollAt > 800) lastUserScroll = Date.now(); }, { passive: true });
 window.addEventListener('scroll', () => { if (Date.now() - progScrollAt > 800 && getComputedStyle($('sheet')).overflowY === 'visible') lastUserScroll = Date.now(); }, { passive: true });
 $('moreBtn').addEventListener('click', e => { const pl = document.querySelector('.player'), on = !pl.classList.contains('open'); pl.classList.toggle('open', on); e.currentTarget.setAttribute('aria-expanded', on ? 'true' : 'false'); e.currentTarget.textContent = on ? '✕ Kapat' : '⚙ Ayarlar'; });
+$('barViewIn').checked = barView;
+$('barViewIn').addEventListener('change', e => { barView = e.target.checked; store('kilavuz_barview', barView ? '1' : '0'); if (S && D) { renderSheet(); shCur.blk = -1; syncSheet(now()); } });
 $('followIn').addEventListener('change', e => { if (e.target.checked) { lastUserScroll = 0; shCur.blk = -1; syncSheet(now()); } });
 $('lyrEditBtn').addEventListener('click', () => { const open = $('lyrEdit').hidden; $('lyrEdit').hidden = !open; $('lyrEditBtn').setAttribute('aria-pressed', open ? 'true' : 'false'); if (open && !$('lyrText').value) $('lyrText').value = (S.lyrics && S.lyrics.text) || ''; });
 $('lyrAlign').addEventListener('click', () => { const t = $('lyrText').value.trim(); if (!t) { $('lyrText').focus(); return; } lyrRequest({ mode: 'text', text: t }); });
