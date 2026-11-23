@@ -237,7 +237,7 @@ dialog form { margin-top: 12px; }
 .rowbtns { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .rowbtns form { margin: 0; }
 .qr { display: grid; place-items: center; margin: 10px 0; }
-.qr svg { width: 220px; height: 220px; }
+.qr svg { width: 240px; height: auto; max-width: 100%; display: block; }
 .dim { opacity: .45; pointer-events: none; }
 html.app body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 html.app .player { top: env(safe-area-inset-top); }
@@ -316,11 +316,13 @@ html.app .player { top: env(safe-area-inset-top); }
         <button type="button" data-v="1" aria-pressed="true">%100</button>
       </div>
       <label class="toggle" for="clickIn"><input type="checkbox" id="clickIn"> Metronom</label>
+      <label class="toggle" for="syncIn" title="Akorlar ve sözler sesten önce geliyorsa sağa, geç geliyorsa sola kaydır">Kayma <input type="range" id="syncIn" min="-400" max="400" step="10" value="0"> <span class="mono" id="syncVal">0 ms</span></label>
     </div>
     <div class="listen">
       <button class="btn" id="listenBtn" type="button" aria-pressed="false">Beni dinle</button>
       <select id="micSel" aria-label="Ses girişi" hidden></select>
       <label class="toggle" for="waitIn"><input type="checkbox" id="waitIn"> Bekleme modu</label>
+      <label class="toggle" for="tolSel" title="Akor değişiminde ne kadar erken ya da geç basabileceğin">Tolerans <select id="tolSel"><option value="0.15">Sıkı</option><option value="0.4">Normal</option><option value="0.8">Rahat</option></select></label>
       <label class="toggle" for="monIn"><input type="checkbox" id="monIn"> Gitarımı hoparlörden duy</label>
       <div class="meter" title="Giriş seviyesi"><div id="meterFill"></div></div>
       <span class="heard" id="heard"></span>
@@ -726,12 +728,16 @@ function markLoop() { document.querySelectorAll('.loopbtn').forEach(b => { const
 // ---------------- Calma ----------------
 function ensureCtx() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } } if (actx && actx.state === 'suspended') actx.resume().catch(() => {}); return actx; }
 function tick(accent) { if (!clickOn || !actx) return; const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = accent ? 1500 : 1000; g.gain.setValueAtTime(accent ? 0.35 : 0.2, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.06); o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + 0.07); }
-function now() { return audio.currentTime || 0; }
-function seek(t) { t = Math.max(0, Math.min(D.dur - 0.05, t)); audio.currentTime = t; lastBeat = beatAt(t); lastSeg = -1; L.waiting = null; L.unlocked.clear(); $('waitMsg').hidden = true; update(t); }
+let TOL = +(store('kilavuz_tol') || 0.4), SYNC = +(store('kilavuz_sync') || 0) / 1000;  // tolerans (sn, gerçek zaman) ve görüntü kayması (sn)
+if (!(TOL > 0)) TOL = 0.4; if (!isFinite(SYNC)) SYNC = 0;
+function now() { return Math.max(0, (audio.currentTime || 0) - SYNC); }
+function tolSong() { return TOL * rate; }  // toleransın şarkı zamanındaki karşılığı (yavaş çalarken daralmaz)
+function nextDiff(seg) { for (let k = seg.idx + 1; k < D.segs.length; k++) if (D.segs[k].ch !== seg.ch) return D.segs[k]; return null; }
+function seek(t) { t = Math.max(0, Math.min(D.dur - 0.05, t)); audio.currentTime = Math.max(0, t + SYNC); lastBeat = beatAt(t); lastSeg = -1; L.waiting = null; L.pend = null; L.early = null; L.unlocked.clear(); $('waitMsg').hidden = true; update(t); }
 function setPlayBtn() { $('playBtn').textContent = playing ? '❚❚ Duraklat' : '▶ Başlat'; }
 function play() { ensureCtx(); audio.playbackRate = rate; audio.preservesPitch = true; playing = true; setPlayBtn(); audio.play().catch(() => { playing = false; setPlayBtn(); $('status').textContent = 'Ses başlatılamadı. Başlat düğmesine tekrar bas.'; }); }
-function pause() { playing = false; L.waiting = null; $('waitMsg').hidden = true; audio.pause(); setPlayBtn(); }
-function setSource(kind) { const t = now(), was = playing; srcKind = kind; audio.pause(); audio.src = `/media/${S.id}/${kind}.mp3`; audio.addEventListener('loadedmetadata', () => { audio.currentTime = t; audio.playbackRate = rate; if (was) audio.play().catch(() => {}); }, { once: true }); document.querySelectorAll('#srcSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === kind ? 'true' : 'false')); }
+function pause() { playing = false; L.waiting = null; L.pend = null; L.early = null; $('waitMsg').hidden = true; audio.pause(); setPlayBtn(); }
+function setSource(kind) { const t = audio.currentTime || 0, was = playing; srcKind = kind; audio.pause(); audio.src = `/media/${S.id}/${kind}.mp3`; audio.addEventListener('loadedmetadata', () => { audio.currentTime = t; audio.playbackRate = rate; if (was) audio.play().catch(() => {}); }, { once: true }); document.querySelectorAll('#srcSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === kind ? 'true' : 'false')); }
 
 function locate(t) { let bi = beatAt(t + 0.005);  // ses öğesi zamanı yuvarlar (8.2 -> 8.199999): vuruş başında bir önceki vuruşa düşmesin
   const pre = bi < 0; if (pre) bi = 0; const bar = D.beat2bar[bi], b = D.bars[bar]; const seg = b.segs.find(s => bi >= s.b0 && bi < s.b0 + s.n) || b.segs[0]; return { bi, pre, bar, b, seg }; }
@@ -777,7 +783,7 @@ const L = { on: false, stream: null, node: null, an: null, mon: null, fbuf: null
 function buildTemplates() { const T = []; for (let r = 0; r < 12; r++) for (const iv of [[0, 4, 7], [0, 3, 7]]) { const v = new Float32Array(12); v[r] = 1; v[(r + iv[1]) % 12] = 0.6; v[(r + 7) % 12] = 0.8; const n = Math.hypot(...v); T.push(v.map(x => x / n)); } return T; }
 function tplIndex(ch) { const p = parse(ch); return p ? p.pc * 2 + (p.min ? 1 : 0) : -1; }
 function tplLabel(i) { return NOTES[i >> 1] + (i & 1 ? 'm' : ''); }
-function listenReset() { L.tpl = L.tpl || buildTemplates(); L.stats.clear(); L.log = []; L.hits = 0; L.total = 0; L.unlocked.clear(); L.waiting = null; D.marks = {}; L.fluxHist = []; document.querySelectorAll('.bar.hit,.bar.miss').forEach(e => e.classList.remove('hit', 'miss')); }
+function listenReset() { L.tpl = L.tpl || buildTemplates(); L.stats.clear(); L.log = []; L.hits = 0; L.total = 0; L.unlocked.clear(); L.waiting = null; L.pend = null; L.early = null; L.erun = 0; L.onsetSong = null; D.marks = {}; L.fluxHist = []; document.querySelectorAll('.bar.hit,.bar.miss').forEach(e => e.classList.remove('hit', 'miss')); }
 // Uygulamada mikrofonu iOS'un kendi ses motoru açar (ham ses, düşük gecikme); spektrum hesabı orada yapılıp buraya yollanır.
 window.__nativeHear = h => { L.nh = h; };
 window.__nativeListenError = msg => { listenStop(); $('status').textContent = msg; };
@@ -801,13 +807,13 @@ async function listenStart() {
   const nb = L.an.frequencyBinCount; L.fbuf = new Float32Array(nb); L.tbuf = new Float32Array(2048);
   // Her perde (E2..E6) icin ilk 4 harmonigin FFT kutulari: armoniklerin baska notaymis gibi sayilmasini onler.
   L.pm = []; for (let p = 40; p <= 88; p++) { const f = 440 * Math.pow(2, (p - 69) / 12), hs = []; for (let h = 1; h <= 4; h++) { const k = Math.round(h * f * L.an.fftSize / ctx.sampleRate); if (k > 0 && k < nb - 1) hs.push(k); } L.pm.push(hs); }
-  L.tpl = L.tpl || buildTemplates(); L.stats.clear(); L.log = []; L.hits = 0; L.total = 0; L.unlocked.clear(); L.waiting = null; D.marks = {}; document.querySelectorAll('.bar.hit,.bar.miss').forEach(e => e.classList.remove('hit', 'miss'));
+  L.tpl = L.tpl || buildTemplates(); L.stats.clear(); L.log = []; L.hits = 0; L.total = 0; L.unlocked.clear(); L.waiting = null; L.pend = null; L.early = null; L.erun = 0; L.onsetSong = null; D.marks = {}; document.querySelectorAll('.bar.hit,.bar.miss').forEach(e => e.classList.remove('hit', 'miss'));
   L.on = true; $('listenBtn').setAttribute('aria-pressed', 'true'); $('listenBtn').textContent = 'Dinliyorum (kapat)'; $('score').textContent = '';
   try { const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput'); const cur = L.stream.getAudioTracks()[0].getSettings().deviceId;
     $('micSel').innerHTML = devs.map(d => `<option value="${esc(d.deviceId)}"${d.deviceId === cur ? ' selected' : ''}>${esc(d.label || 'Ses girişi')}</option>`).join(''); $('micSel').hidden = devs.length < 2; } catch (e) { /* liste alinamadi */ }
   $('status').textContent = 'Dinliyorum. iRig ile doğrudan bağlıysan sorun yok. Mikrofonla dinletiyorsan şarkıyı kulaklıktan çal, yoksa şarkının kendi sesi de duyulur.';
 }
-function listenStop() { if (L.native) { native('listenStop'); L.native = false; L.nh = null; } L.on = false; L.waiting = null; if (L.stream) L.stream.getTracks().forEach(t => t.stop()); try { L.node && L.node.disconnect(); } catch (e) { /* yok */ } L.stream = L.node = L.an = L.an2 = null;
+function listenStop() { if (L.native) { native('listenStop'); L.native = false; L.nh = null; } L.on = false; L.waiting = null; L.pend = null; L.early = null; if (L.stream) L.stream.getTracks().forEach(t => t.stop()); try { L.node && L.node.disconnect(); } catch (e) { /* yok */ } L.stream = L.node = L.an = L.an2 = null;
   $('listenBtn').setAttribute('aria-pressed', 'false'); $('listenBtn').textContent = 'Beni dinle'; $('heard').textContent = ''; $('heard').className = 'heard'; $('meterFill').style.width = '0'; $('waitMsg').hidden = true; }
 function hear() {
   if (L.native) { const h = L.nh; if (!h) return { sc: new Array(24).fill(0), best: 0, bass: -1, loud: false }; L.db = h.db; return h; }
@@ -838,7 +844,7 @@ function listenTick() {
     for (let k = 2; k < 240; k++) { const m = Math.pow(10, L.f2[k] / 20); const d = m - L.m2[k]; if (d > 0) flux += d; tot += m; L.m2[k] = m; }
     fr = flux / (tot + 1e-9); } L.fluxHist = L.fluxHist.concat(fr).slice(-40);
   const med = L.fluxHist.slice().sort((a, b) => a - b)[Math.floor(L.fluxHist.length / 2)];
-  const onset = L.db > -60 && fr > Math.max(0.22, 1.8 * med) && t - (L.lastOnset || 0) > 100; if (onset) L.lastOnset = t;
+  const onset = L.db > -60 && fr > Math.max(0.22, 1.8 * med) && t - (L.lastOnset || 0) > 100; if (onset) { L.lastOnset = t; L.onsetSong = now(); }
   $('meterFill').style.width = Math.max(0, Math.min(100, (L.db + 70) * 1.6)) + '%';
   const seg = D.segs[L.waiting !== null ? L.waiting : locate(now()).seg.idx], ok = judge(h, seg.ch);
   L.det = h.loud ? tplLabel(h.best) : null; L.pass = ok;
@@ -846,8 +852,18 @@ function listenTick() {
   if (!h.loud) { el.textContent = 'Ses yok'; el.className = 'heard'; }
   else if (ok) { el.textContent = 'Duyduğum: ' + disp(seg.ch) + ' ✓'; el.className = 'heard ok'; }
   else { el.textContent = 'Duyduğum: ' + disp(L.det) + ' ✗'; el.className = 'heard no'; }
+  // Bekleme modunda akor değişince tolerans süresi kadar çalmaya devam eder; bu sürede doğru akor gelirse hiç durmaz.
+  if (L.pend) { const p = D.segs[L.pend.idx]; if (judge(h, p.ch)) { if (++L.prun >= 2) { L.unlocked.add(p.idx); record(p, true); L.stats.set(p.idx, { done: true }); L.pend = null; } } else L.prun = 0;
+    if (L.pend && t > L.pend.until) { const s = L.pend.idx; L.pend = null; startWait(s); } }
+  // Erken basma: sıradaki akor tolerans içinde önceden doğru çalınırsa o değişim zaten geçilmiş sayılır.
+  if (L.waiting === null && playing && $('waitIn').checked) { const cur = locate(now()).seg, nx = nextDiff(cur);
+    if (nx && nx.ch !== 'N' && nx.t0 - now() <= tolSong() && judge(h, nx.ch)) { if (++L.erun >= 2) L.early = nx.idx; } else L.erun = 0; }
   if (L.waiting !== null) { L.run = ok ? L.run + 1 : 0; if (L.run >= 3) { const s = L.waiting; L.unlocked.add(s); L.waiting = null; L.run = 0; $('waitMsg').hidden = true; record(D.segs[s], true); L.stats.set(s, { done: true }); audio.play().catch(() => {}); } return; }
-  if (playing && seg.ch !== 'N') { let st = L.stats.get(seg.idx); if (!st) { st = { sig: 0, pass: 0, on: 0, n: 0 }; L.stats.set(seg.idx, st); } st.n++; if (onset) st.on++; if (!st.done && h.loud) { st.sig++; if (ok) st.pass++; } }
+  if (playing && seg.ch !== 'N') { let st = L.stats.get(seg.idx); if (!st) { st = { sig: 0, pass: 0, on: 0, n: 0 }; L.stats.set(seg.idx, st); } st.n++; if (onset) st.on++;
+    if (!st.done && h.loud) { const tt = now(), nx = nextDiff(seg);
+      // tolerans: değişimden hemen sonra eski akor ya da hemen önce yeni akor duyuluyorsa yanlış sayılmaz
+      const head = tt - seg.t0 < tolSong(), tail = nx && nx.t0 - tt < tolSong() && judge(h, nx.ch);
+      if (ok) { st.sig++; st.pass++; } else if (!head && !tail) st.sig++; } }
 }
 function record(seg, hit) { L.total++; if (hit) L.hits++; const prev = D.marks[seg.bar]; D.marks[seg.bar] = (prev === 'miss' || !hit) ? 'miss' : 'hit';
   const el = document.querySelector(`.bar[data-bar="${seg.bar}"]`); if (el) { el.classList.remove('hit', 'miss'); el.classList.add(D.marks[seg.bar]); }
@@ -856,10 +872,16 @@ function onSegChange(prevIdx, seg) {
   if (!L.on) return;
   if (prevIdx >= 0) { const st = L.stats.get(prevIdx), p = D.segs[prevIdx]; if (p.ch !== 'N' && !(st && st.done)) { (L.log = L.log || []).push({ bar: p.bar, ...(st || {}) }); record(p, !!st && st.on >= Math.min(2, p.n) && st.sig >= Math.max(3, 0.5 * st.n) && st.pass / st.sig >= 0.35); } L.stats.delete(prevIdx); }  // isabet: calinmali (vurus var), olcu boyunca duyulmali, cogunlukla dogru akor olmali
   L.stats.delete(seg.idx);
+  if (L.onsetSong !== null && now() - L.onsetSong < tolSong()) L.stats.set(seg.idx, { sig: 0, pass: 0, on: 1, n: 0 });  // biraz erken vuruş bu ölçüye sayılır
   if ($('waitIn').checked && seg.ch !== 'N' && !L.unlocked.has(seg.idx) && (prevIdx < 0 || D.segs[prevIdx].ch !== seg.ch)) {
-    L.waiting = seg.idx; L.run = 0; audio.pause(); const w = $('waitMsg'); w.hidden = false; w.textContent = `Bekliyorum: ${shapeName(nm(seg))} bas`; update(seg.t0 + 0.001);
+    if (L.early === seg.idx) { L.early = null; L.unlocked.add(seg.idx); record(seg, true); L.stats.set(seg.idx, { done: true }); return; }
+    if (prevIdx < 0 || !playing) { startWait(seg.idx); return; }
+    L.pend = { idx: seg.idx, until: performance.now() + TOL * 1000 }; L.prun = 0;
   }
 }
+function startWait(idx) { const seg = D.segs[idx];
+  L.waiting = idx; L.run = 0; lastSeg = idx; audio.pause(); audio.currentTime = Math.max(0, seg.t0 + SYNC);  // akorun başına dön; bulunca oradan devam eder
+  const w = $('waitMsg'); w.hidden = false; w.textContent = `Bekliyorum: ${shapeName(nm(seg))} bas`; update(seg.t0 + 0.001); }
 
 // ---------------- Duzeltme ----------------
 async function saveEdits() { await api(`/api/songs/${S.id}/edits`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chords: S.analysis.chords, phase: S.analysis.phase }) }); S.analysis.edited = true; }
@@ -1171,6 +1193,10 @@ $('listenBtn').addEventListener('click', () => L.on ? listenStop() : listenStart
 $('micSel').addEventListener('change', async () => { if (L.on) { listenStop(); await listenStart(); } });
 $('monIn').addEventListener('change', e => { if (L.native) native('monitor', { on: e.target.checked }); });
 $('monIn').addEventListener('change', e => { if (L.mon) L.mon.gain.value = e.target.checked ? 1 : 0; });
+$('tolSel').value = String(TOL); if (!$('tolSel').value) { $('tolSel').value = '0.4'; TOL = 0.4; }
+$('tolSel').addEventListener('change', e => { TOL = +e.target.value || 0.4; store('kilavuz_tol', String(TOL)); });
+$('syncIn').value = String(Math.round(SYNC * 1000)); $('syncVal').textContent = `${Math.round(SYNC * 1000)} ms`;
+$('syncIn').addEventListener('input', e => { const ms = +e.target.value || 0, t = now(); SYNC = ms / 1000; store('kilavuz_sync', String(ms)); $('syncVal').textContent = `${ms} ms`; if (D) update(t); });
 $('waitIn').addEventListener('change', e => { if (!e.target.checked && L.waiting !== null) { L.waiting = null; $('waitMsg').hidden = true; if (playing) audio.play().catch(() => {}); } if (e.target.checked && !L.on) listenStart(); });
 $('editBtn').addEventListener('click', () => setEditMode(!editMode));
 $('timeline').addEventListener('click', e => {
@@ -1204,7 +1230,7 @@ $('lyrSearch').addEventListener('click', () => { const q = $('lyrQuery').value.t
 $('lyrRelisten').addEventListener('click', () => lyrRequest({ mode: 'auto', relisten: true }));
 $('lyrCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(chordProText()); $('lyrCopy').textContent = 'Kopyalandı'; } catch (e) { $('lyrCopy').textContent = 'Kopyalanamadı'; } setTimeout(() => { $('lyrCopy').textContent = 'Akor kağıdını kopyala'; }, 1800); });
 window.addEventListener('hashchange', route);
-window.__k = { L, get D() { return D; }, get S() { return S; }, get SH() { return SH; }, hear, judge, shapeAt, arpOf, computeSheet, chordChanges, chordProText };
+window.__k = { L, get D() { return D; }, get S() { return S; }, get SH() { return SH; }, hear, judge, seek, now, shapeAt, arpOf, computeSheet, chordChanges, chordProText };
 route(); requestAnimationFrame(frame);
 </script>
 </body>
