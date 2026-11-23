@@ -91,6 +91,7 @@ struct WebContainer: UIViewRepresentable {
         #if DEBUG
         if #available(iOS 16.4, *) { w.isInspectable = true }
         #endif
+        w.uiDelegate = context.coordinator  // JS alert/confirm/prompt (e.g. "Sil" asks confirm)
         context.coordinator.web = w
         model.web = w
         w.load(URLRequest(url: URL(string: "http://127.0.0.1:\(port)/")!))
@@ -126,5 +127,42 @@ final class Bridge: NSObject, WKScriptMessageHandler {
         case "monitor": MicListener.shared.setMonitor(o["on"] as? Bool ?? false)
         default: break
         }
+    }
+}
+
+// WKWebView shows no alert/confirm/prompt unless the UI delegate presents them;
+// without this, confirm() silently returns false and the page's delete does nothing.
+extension Bridge: WKUIDelegate {
+    private func presenter() -> UIViewController? {
+        var vc = web?.window?.rootViewController
+        while let next = vc?.presentedViewController { vc = next }
+        return vc
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,
+                 initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
+        guard let vc = presenter() else { return completionHandler() }
+        let a = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        a.addAction(UIAlertAction(title: "Tamam", style: .default) { _ in completionHandler() })
+        vc.present(a, animated: true)
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String,
+                 initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
+        guard let vc = presenter() else { return completionHandler(false) }
+        let a = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        a.addAction(UIAlertAction(title: "Vazgeç", style: .cancel) { _ in completionHandler(false) })
+        a.addAction(UIAlertAction(title: "Tamam", style: .destructive) { _ in completionHandler(true) })
+        vc.present(a, animated: true)
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?,
+                 initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (String?) -> Void) {
+        guard let vc = presenter() else { return completionHandler(nil) }
+        let a = UIAlertController(title: nil, message: prompt, preferredStyle: .alert)
+        a.addTextField { $0.text = defaultText }
+        a.addAction(UIAlertAction(title: "Vazgeç", style: .cancel) { _ in completionHandler(nil) })
+        a.addAction(UIAlertAction(title: "Tamam", style: .default) { _ in completionHandler(a.textFields?.first?.text) })
+        vc.present(a, animated: true)
     }
 }
